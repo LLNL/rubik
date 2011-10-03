@@ -3,6 +3,7 @@ description = """blocker generates mapping files for torus and mesh networks acc
 structured transformations of blocks within the ranks.
 """
 import numpy as np
+import zorder
 import optparse, itertools, sys
 
 class Process(object):
@@ -14,6 +15,12 @@ class Process(object):
        See Process.make_list() to create lists of processes from ranges of identifiers.
     """
     def __init__(self, id, next=None, prev=None):
+        """Constructs a process with a particular id, optionally as part of a list.
+           Parameters:
+             id      arbitrary process identifier.
+             next    next Process in a list.
+             prev    previous Process in a list.
+        """
         self.id      = id
         self.coord   = None
 
@@ -139,13 +146,6 @@ def tilt(arr, axis, direction, slope = 1):
         plane.flat = np.roll(plane, i * slope, axis=direction).flat
 
 
-def z_order(arr):
-    """Transform the elements of an array from dimension-major order to z order.  This modifies the array."""
-    buffer = arr.copy()
-    for i, elt in np.ndenumerate(buffer):
-
-
-
 
 class Partition(object):
     """Tree of views of an initial Box.  Each successive level is a set of views of the top-level box."""
@@ -190,6 +190,10 @@ class Partition(object):
         """Tilts the box in this partition along one axis in the direction of another.  See tilt()."""
         tilt(self.box, axis, direction, slope)
 
+    def zorder(self):
+        """Reorder the processes in this box in z order."""
+        zorder.zorder(self.box)
+
     def map(self, other):
         """Map the other partition onto this one.  First checks if partition sizes are compatible."""
         # We will assign every element of other to self.  We need to swap in other's process list so
@@ -228,28 +232,3 @@ class Partition(object):
         for proc in self.procs:
             format = " ".join(["%s"] * len(proc.coord)) + "\n"
             stream.write(format % proc.coord)
-
-
-
-if __name__ == "__main__":
-    p = Partition.create([3,3])
-    print p.box
-    p.tilt(1, 0, 2)
-
-    print p.box
-    sys.exit(0)
-
-    p.transpose([1,0])
-    p.div([2,2])
-
-    print p.box
-
-    q = Partition.create([4,4])
-    #q.mod([2,2])
-    q.div([4,1])
-
-    q.map(p)
-
-    print q.box
-
-    q.write_map_file()
