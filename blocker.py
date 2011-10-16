@@ -173,6 +173,13 @@ class Partition(object):
     def div(self, divisors):
         self.cut(divisors, div)
 
+    def tile(self, tiles):
+	divisors = [0]*len(tiles)
+	for i in range(len(tiles)):
+	    divisors[i] = self.box.shape[i] / tiles[i]
+	    # print i, self.box.shape[i], tiles[i], divisors[i]
+        self.cut(divisors, div)
+
     def mod(self, divisors):
         self.cut(divisors, mod)
 
