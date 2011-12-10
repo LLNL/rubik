@@ -1,7 +1,7 @@
 #!/usr/bin/env python2.6
 
 from blocker import *
-
+import sys
 
 if __name__ == "__main__":
     # application topology
@@ -18,6 +18,8 @@ if __name__ == "__main__":
 
     torus.map(app)
     print torus.box
+
+    torus.write_map_file(sys.stdout)
 
     sys.exit(0)
 
