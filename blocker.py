@@ -6,8 +6,6 @@ import numpy as np
 import zorder
 import optparse, itertools, sys
 
-import pygraphviz as pgv
-
 class Process(object):
     """The process class represents a single task in a parallel application with a unique id
        in [0,ntasks).  Processes exist in a doubly linked list that runs through the full id
@@ -256,6 +254,7 @@ class Partition(object):
             yield child
 
     def plot(self, graph=None):
+        import pygraphviz as pgv  # only import this if we call plot function
         if not graph:
             graph = pgv.AGraph(bgcolor="transparent")
             graph.node_attr['shape'] = "circle"
