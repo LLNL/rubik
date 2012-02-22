@@ -6,6 +6,8 @@ import numpy as np
 import zorder
 import optparse, itertools, sys
 
+import pygraphviz as pgv
+
 class Process(object):
     """The process class represents a single task in a parallel application with a unique id
        in [0,ntasks).  Processes exist in a doubly linked list that runs through the full id
@@ -106,18 +108,17 @@ def cut(arr, divisors, slicers = div):
     if hasattr(slicers, '__call__'):
         slicers = [slicers] * len(divisors)
 
-    # Make an iterator over the cartesian product of the ranges of each divisor value.
-    # This gives us a set of unique identifiers for each subdivision of the array.
-    slice_ids = itertools.product(*[xrange(d) for d in divisors])
+    # Create a new numpy array to hold each cut of the original array
+    parts = np.ndarray(divisors, dtype=object)
 
-    # Map the slice generator to each dimensional index in the slice id to get a slice.
-    def get_slice_for_dim(dim, chunk):
-        slicer = slicers[dim]
-        return slicer(arr, dim, i, divisors[dim])
-    slices = [[get_slice_for_dim(d, i) for d, i in enumerate(id)] for id in slice_ids]
+    # assign a view to each partition
+    for index in np.ndindex(parts.shape):
+        slice = [slicers[dim](arr, dim, i, parts.shape[dim]) for dim, i in enumerate(index)]
+        parts[index] = arr[slice]
 
-    # Slice the array up and return views for each of the mod set slices.
-    return [arr[s] for s in slices]
+    # return the numpy array containing each subview
+    return parts
+
 
 def tilt(arr, axis, direction, slope = 1):
     """Tilts the elements in arr along the specified axis.
@@ -145,8 +146,6 @@ def tilt(arr, axis, direction, slope = 1):
         if direction > axis: direction -= 1   # compensate for subtracted dimension
         plane.flat = np.roll(plane, i * slope, axis=direction).flat
 
-
-
 class Partition(object):
     """Tree of views of an initial Box.  Each successive level is a set of views of the top-level box."""
     def __init__(self, box, parent):
@@ -156,7 +155,7 @@ class Partition(object):
         self.box       = box
         self.procs     = None
         self.parent    = parent
-        self.children  = []
+        self.children  = np.array([], dtype=object)
 
     @classmethod
     def create(cls, shape):
@@ -170,6 +169,7 @@ class Partition(object):
         p.procs = procs
         return p
 
+    # === Partitioning routines =================================================================
     def div(self, divisors):
         self.cut(divisors, div)
 
@@ -185,8 +185,14 @@ class Partition(object):
 
     def cut(self, divisors, slicers):
         """Cuts this partition into a set of views, and make children out of them. See cut()."""
-        self.children = [Partition(p, self) for p in cut(self.box, divisors, slicers)]
+        views = cut(self.box, divisors, slicers)   # Get an array of all the subpartitions (views)
 
+        def create_child_partition(view):
+            return Partition(view, self)
+        create_children = np.vectorize(create_child_partition)
+        self.children = create_children(views)     # Make a Partition object out of each view
+
+    # === Reordering Routines ===================================================================
     def transpose(self, axes):
         """Transpose this partition by permuting its axes according to the axes array.
            See numpy.transpose().
@@ -201,6 +207,7 @@ class Partition(object):
         """Reorder the processes in this box in z order."""
         zorder.zorder(self.box)
 
+    # === Other Operations =====================================================================
     def map(self, other):
         """Map the other partition onto this one.  First checks if partition sizes are compatible."""
         # We will assign every element of other to self.  We need to swap in other's process list so
@@ -208,10 +215,9 @@ class Partition(object):
         if self.procs:
             self.procs = other.procs
 
-        if self.children:
-            # We only want to do assignment at the leaves, so follow the views
-            # until we get there.
-            for child, otherchild in zip(self.children, other.children):
+        if self.children.size:
+            # We only want to do assignment at the leaves, so follow the views until we get there.
+            for child, otherchild in zip(self.children.flat, other.children.flat):
                 child.map(otherchild)
         else:
             # At leaves, assign procs through the view.
@@ -222,9 +228,9 @@ class Partition(object):
            partition tree, self and other have the same number of children, and that the ith child
            of a node in self has the same size as the ith child of the corresponding node in other.
         """
-        if self.box.size != other.box.size:
-            return False
-        return all(x.compatible(y) for x,y in zip(self.children, other.children))
+        return (self.box.size == other.box.size and
+                self.children.size != other.children.size and
+                all(x.compatible(y) for x,y in zip(self.children, other.children)))
 
     def assign_coordinates(self):
         """Assigns coordinates to all processes based on their position in the array."""
@@ -239,3 +245,50 @@ class Partition(object):
         for proc in self.procs:
             format = " ".join(["%s"] * len(proc.coord)) + "\n"
             stream.write(format % proc.coord)
+
+    def __getitem__(self, coords):
+        """Returns the child at a pearticular index"""
+        print coords
+        return self.children[coords]
+
+    def __iter__(self):
+        for child in self.children.flat:
+            yield child
+
+    def plot(self, graph=None):
+        if not graph:
+            graph = pgv.AGraph(bgcolor="transparent")
+            graph.node_attr['shape'] = "circle"
+
+            for proc in self.box.flat:
+                graph.add_node(proc.id,f="foo")
+
+            for child in self.children.flat:
+                child.plot(graph)
+
+            return graph
+        else:
+            name = "-".join([str(x.id) for x in self.box.flat])
+            subgraph = graph.subgraph([x.id for x in self.box.flat], name="cluster%s" % name)
+            for child in self.children.flat:
+                child.plot(subgraph)
+
+    def __invert_helper(self):
+        for path in self.box.flat:
+            path.append(self)
+        for child in self.children.flat:
+            child.__invert_helper()
+
+    def invert(self, coordinate=None):
+        """Returns an array of the same shape as this Partition's box.  Each cell of this array
+           will contain a list of partitions that contain that cell, ordered from top to bottom.
+        """
+        temp = self.box.copy()
+        for i in xrange(self.box.size):
+            self.box.flat[i] = []
+        self.__invert_helper()
+
+        flat_box = self.box.copy()
+        self.box.flat = temp.flat
+        return flat_box
+
