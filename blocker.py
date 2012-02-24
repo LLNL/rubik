@@ -248,7 +248,6 @@ class Partition(object):
 
     def __getitem__(self, coords):
         """Returns the child at a pearticular index"""
-        print coords
         return self.children[coords]
 
     def __iter__(self):
