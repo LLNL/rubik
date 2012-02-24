@@ -1,6 +1,9 @@
 #!/usr/bin/env python
-description = """blocker generates mapping files for torus and mesh networks according to
+description = """\
+Blocker generates mapping files for torus and mesh networks according to
 structured transformations of blocks within the ranks.
+
+Todd Gamblin tgamblin@llnl.gov
 """
 import numpy as np
 import zorder
@@ -175,7 +178,6 @@ class Partition(object):
 	divisors = [0]*len(tiles)
 	for i in range(len(tiles)):
 	    divisors[i] = self.box.shape[i] / tiles[i]
-	    # print i, self.box.shape[i], tiles[i], divisors[i]
         self.cut(divisors, div)
 
     def mod(self, divisors):
