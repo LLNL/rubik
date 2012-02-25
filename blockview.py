@@ -11,7 +11,7 @@ import numpy as np
 
 # True for perspective projection, false for ortho
 perspective = True
-solid_interior = False
+solid_interior = True
 
 # If the interior blocks are solid, use more opacity to reveal them
 if solid_interior: alpha = 0.25
@@ -146,6 +146,17 @@ class BlockerView(QGLWidget):
         self.paths = partition.invert()
         self.faces = None
 
+        self.last_pos = [0,0,0]
+        self.dragging = False
+
+        # Initial tranlation is dependent on the size of the shape we're using
+        shape = self.paths.shape
+        depth = 3 * max(shape)
+        self.trans = [-0.5 * max(shape), -0.5 * max(shape), -depth]
+
+        # Initial rotation is just the identity matrix.
+        self.total_rotate = np.identity(4)
+
     def initializeGL(self):
         glShadeModel(GL_SMOOTH)
         glClearColor(*clear_color)
@@ -195,12 +206,78 @@ class BlockerView(QGLWidget):
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
 
+
+    def map_to_sphere(self, x, y):
+        width, height = self.width(), self.height()
+        v = [0,0,0]
+
+        v[0] = (2.0 * x - width) / width
+        v[1] = (height - 2.0 * y) / height
+
+        d = math.sqrt(v[0]*v[0] + v[1]*v[1])
+        if d >= 1.0: d = 1.0
+
+        v[2] = math.cos((math.pi/2.0) * d)
+
+        a = v[0]*v[0]
+        a += v[1]*v[1]
+        a += v[2]*v[2]
+        a = 1 / math.sqrt(a)
+
+        v[0] *= a
+        v[1] *= a
+        v[2] *= a
+
+        return v
+
+    def mousePressEvent(self, event):
+        x, y = event.x(), event.y()
+        self.last_pos = self.map_to_sphere(x, y)
+        self.dragging = True
+
+    def mouseReleaseEvent(self, event):
+        self.dragging = False
+
+    def mouseMoveEvent(self, event):
+        if not self.dragging: return
+
+        x, y = event.x(), event.y()
+        cur_pos = self.map_to_sphere(x, y)
+
+        dx = cur_pos[0] - self.last_pos[0]
+        dy = cur_pos[1] - self.last_pos[1]
+        dz = cur_pos[2] - self.last_pos[2]
+
+        tb_angle = 0
+        tb_axis = [0,0,0]
+
+        if dx != 0 or dy != 0 or dz != 0 :
+            # compute theta and cross product
+            tb_angle = 90.0 * math.sqrt(dx*dx + dy*dy + dz*dz)
+            tb_axis[0] = self.last_pos[1]*cur_pos[2] - self.last_pos[2]*cur_pos[1]
+            tb_axis[1] = self.last_pos[2]*cur_pos[0] - self.last_pos[0]*cur_pos[2]
+            tb_axis[2] = self.last_pos[0]*cur_pos[1] - self.last_pos[1]*cur_pos[0]
+
+            # update position
+            self.last_pos = cur_pos
+
+        # Once rotation has been computed, use OpenGL to add our rotation to the
+        # current modelview matrix.  Then fetch the result and keep it around.
+        glLoadIdentity()
+        glRotatef(0.5*tb_angle, tb_axis[0] , tb_axis[1], tb_axis[2])
+        glMultMatrixd(self.total_rotate)
+        self.total_rotate = glGetDouble(GL_MODELVIEW_MATRIX)
+
+        self.updateGL()
+
+
     def get_color(self, level):
         color = colors[level]
         maxdepth = max(len(l) for l in self.paths.flat)
         if solid_interior and level == maxdepth-1:
             color=(color[0], color[1], color[2], 1.0)
         return color
+
 
     def make_faces(self):
         faces = []
@@ -231,10 +308,8 @@ class BlockerView(QGLWidget):
         shape = self.paths.shape
         depth = 3 * max(shape)
 
-        glTranslatef(-0.5 * max(shape),
-                      -0.5 * max(shape),
-                      -depth)
-        glRotatef(-35, 1.0, 1.0, 0.0)
+        glTranslatef(*self.trans)
+        glMultMatrixd(self.total_rotate)
 
         if not self.faces:
             self.faces = self.make_faces()
@@ -264,10 +339,12 @@ class BlockerView(QGLWidget):
         # render transparent faces afterwards, without depth writing.
         glEnable(GL_BLEND)
         glDepthMask(GL_FALSE)
+        glDisable(GL_CULL_FACE)
         glBegin(GL_QUADS)
         for face in transparent_faces:
             face.draw()
         glEnd()
+        glEnable(GL_CULL_FACE)
         glDepthMask(GL_TRUE)
         glDisable(GL_BLEND)
 
@@ -275,12 +352,15 @@ class BlockerView(QGLWidget):
 def main():
     app = QApplication(sys.argv)    # Create a Qt application
 
-    p = Partition.create([4,4,4])
-    p.div([1,2,1])
-    p[0,0,0].div([4,1,2])
+    p = Partition.create([4,4,8])
+    p.tile([4,4,1])
 
-
-
+    p = Partition.create([4, 4, 4])
+    p.div([2, 1, 1])
+    for child in p:
+        child.div([2,2,2])
+        for c in child:
+            c.div([2,1,1])
 
     mainwindow = QMainWindow()
     glview = BlockerView(p, mainwindow)
