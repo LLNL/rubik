@@ -7,6 +7,7 @@ from PySide.QtOpenGL import *
 from OpenGL.GL import *
 
 from blocker import *
+import glwindow
 import numpy as np
 
 # True for perspective projection, false for ortho
@@ -138,24 +139,20 @@ class Face(object):
                    (scale * self.normal[2]) + self.center[2])
 
 
-class BlockerView(QGLWidget):
+class BlockerView(glwindow.GLWindow):
     def __init__(self, partition, parent=None):
-        QGLWidget.__init__(self, parent)
+        glwindow.GLWindow.__init__(self, parent)
+
         if partition.box.ndim > 3:
             raise Exception("Can only view up to 3-dimensional partitions.")
         self.paths = partition.invert()
         self.faces = None
 
-        self.last_pos = [0,0,0]
-        self.dragging = False
-
         # Initial tranlation is dependent on the size of the shape we're using
         shape = self.paths.shape
-        depth = 3 * max(shape)
-        self.trans = [-0.5 * max(shape), -0.5 * max(shape), -depth]
-
-        # Initial rotation is just the identity matrix.
-        self.total_rotate = np.identity(4)
+        depth = 3 * shape[2]
+        self.translation = np.array(
+            [-0.5 * shape[0], -0.5 * shape[1], -depth])
 
     def initializeGL(self):
         glShadeModel(GL_SMOOTH)
@@ -206,78 +203,12 @@ class BlockerView(QGLWidget):
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
 
-
-    def map_to_sphere(self, x, y):
-        width, height = self.width(), self.height()
-        v = [0,0,0]
-
-        v[0] = (2.0 * x - width) / width
-        v[1] = (height - 2.0 * y) / height
-
-        d = math.sqrt(v[0]*v[0] + v[1]*v[1])
-        if d >= 1.0: d = 1.0
-
-        v[2] = math.cos((math.pi/2.0) * d)
-
-        a = v[0]*v[0]
-        a += v[1]*v[1]
-        a += v[2]*v[2]
-        a = 1 / math.sqrt(a)
-
-        v[0] *= a
-        v[1] *= a
-        v[2] *= a
-
-        return v
-
-    def mousePressEvent(self, event):
-        x, y = event.x(), event.y()
-        self.last_pos = self.map_to_sphere(x, y)
-        self.dragging = True
-
-    def mouseReleaseEvent(self, event):
-        self.dragging = False
-
-    def mouseMoveEvent(self, event):
-        if not self.dragging: return
-
-        x, y = event.x(), event.y()
-        cur_pos = self.map_to_sphere(x, y)
-
-        dx = cur_pos[0] - self.last_pos[0]
-        dy = cur_pos[1] - self.last_pos[1]
-        dz = cur_pos[2] - self.last_pos[2]
-
-        tb_angle = 0
-        tb_axis = [0,0,0]
-
-        if dx != 0 or dy != 0 or dz != 0 :
-            # compute theta and cross product
-            tb_angle = 90.0 * math.sqrt(dx*dx + dy*dy + dz*dz)
-            tb_axis[0] = self.last_pos[1]*cur_pos[2] - self.last_pos[2]*cur_pos[1]
-            tb_axis[1] = self.last_pos[2]*cur_pos[0] - self.last_pos[0]*cur_pos[2]
-            tb_axis[2] = self.last_pos[0]*cur_pos[1] - self.last_pos[1]*cur_pos[0]
-
-            # update position
-            self.last_pos = cur_pos
-
-        # Once rotation has been computed, use OpenGL to add our rotation to the
-        # current modelview matrix.  Then fetch the result and keep it around.
-        glLoadIdentity()
-        glRotatef(0.5*tb_angle, tb_axis[0] , tb_axis[1], tb_axis[2])
-        glMultMatrixd(self.total_rotate)
-        self.total_rotate = glGetDouble(GL_MODELVIEW_MATRIX)
-
-        self.updateGL()
-
-
     def get_color(self, level):
         color = colors[level]
         maxdepth = max(len(l) for l in self.paths.flat)
         if solid_interior and level == maxdepth-1:
             color=(color[0], color[1], color[2], 1.0)
         return color
-
 
     def make_faces(self):
         faces = []
@@ -295,7 +226,10 @@ class BlockerView(QGLWidget):
                     if high[dim] <= shape[dim]-1 and len(self.paths[high]) > l and self.paths[high][l] == path[l]:
                         connect[2*dim+1] = True
 
+                # construct shapes around the world center, not at their actual coordinates
                 center = pad(index, 3)
+
+                # Create all faces we're going to render
                 for face in all_faces:
                     if not connect[face]:
                         faces.append(Face(face, center, 1, 0.1*l, connect, self.get_color(l)))
@@ -304,12 +238,8 @@ class BlockerView(QGLWidget):
     def paintGL(self):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-        glLoadIdentity()
-        shape = self.paths.shape
-        depth = 3 * max(shape)
-
-        glTranslatef(*self.trans)
-        glMultMatrixd(self.total_rotate)
+        # This does translation and rotation for us; see GLWindow for docs
+        self.orient_scene()
 
         if not self.faces:
             self.faces = self.make_faces()
