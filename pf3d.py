@@ -3,11 +3,12 @@
 from blocker import *
 
 if __name__ == "__main__":
-
+    #  mp_r mp_q mp_p
     blm = [8,32,8] # bench_ltr_mem
-    tblm = [8,32,1]
+    tblm = [1,32,8]
+    #      Z Y X T
     bgp = [8,8,8,4] # 512 node BG/P torus
-    tbgp = [4,4,4,4]
+    tbgp = [4,8,8,1]
     
     # application topology
     app = Partition.create(blm)
