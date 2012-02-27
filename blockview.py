@@ -391,8 +391,8 @@ def main():
         child.div([2,2,2])
 
     mainwindow = QMainWindow()
-    glview = BlockerView(p, make_leaf_faces, mainwindow)
-#    glview = BlockerView(p, make_nested_faces, mainwindow)
+#    glview = BlockerView(p, make_leaf_faces, mainwindow)
+    glview = BlockerView(p, make_nested_faces, mainwindow)
 
     mainwindow.setCentralWidget(glview)
     mainwindow.resize(800, 600)
