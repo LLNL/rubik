@@ -177,12 +177,18 @@ class Face(object):
 
 
 class BlockerView(glwindow.GLWindow):
-    def __init__(self, partition, parent=None):
+    def __init__(self, partition, face_renderer, parent=None):
+        """Creates a view of the specified partition using the supplied face renderer.
+           face_renderer should be a cell handler suitable for passing to the iterate_cells routine.
+           It is used to create the faces this BlockerView will render.
+        """
         glwindow.GLWindow.__init__(self, parent)
 
         if partition.box.ndim > 3:
             raise Exception("Can only view up to 3-dimensional partitions.")
         self.paths = partition.invert()
+
+        self.face_renderer = face_renderer
         self.faces = None
 
         # Compute maxdepth here to save cycles later
@@ -290,45 +296,7 @@ class BlockerView(glwindow.GLWindow):
 
                 # Pass a 3d index to the cell handler and let it do its job
                 center = pad(index, 3)
-                cell_handler(center, l, connect, results)
-
-    def make_nested_faces(self, index, level, connections, faces):
-        """Hierarchical renderer that shows tree decomposition with transparent boxes.  Deeper partition
-           levels are drawn as progressively smaller boxes within their encosing partitions' boxes,
-           and outer boxes are made transparent so that inner boxes can be seen.
-        """
-        def get_color(level):
-            color = colors[level].value
-            if level < self.maxdepth-1:
-                return add_alpha(color, 0.25)
-            else:
-                return add_alpha(color, 1.0)
-
-        # Create faces only when there is NOT a connection between our cell and the neighbor
-        # Cells at deeper levels have increasingly large margins -- 0.1 units per level
-        for face in all_faces:
-            if not connections[face]:
-                faces.append(Face(face, index, 1, 0.1*level, connections, get_color(level)))
-
-
-    def make_leaf_faces(self, index, level, connections, faces):
-        """Really basic leaf coloring scheme.  Colors each leaf by its position *within* its parent.
-           By default, this leaves no space between the leaves.
-        """
-        # Get the path to the cell at index
-        path = self.paths[index]
-        leaf_level = len(path)-1
-
-        # This forces us to only render leaf cells
-        if level != leaf_level: return
-
-        partition = path[level]
-        for face in all_faces:
-            if not connections[face]:
-                color_index = partition.flat_index % len(colors)
-                color = add_alpha(colors[color_index].value, 1.0)
-                faces.append(Face(face, index, 1, 0.1, connections, color))
-
+                cell_handler(self, center, l, connect, results)
 
     def paintGL(self):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -338,8 +306,7 @@ class BlockerView(glwindow.GLWindow):
 
         if not self.faces:
             self.faces = []
-#            self.iterate_cells(self.make_nested_faces, self.faces)
-            self.iterate_cells(self.make_leaf_faces, self.faces)
+            self.iterate_cells(self.face_renderer, self.faces)
 
         # Must sort faces in far-to-near z order for transparency
         mdl = np.array(glGetDoublev(GL_MODELVIEW_MATRIX)).flat
@@ -376,11 +343,47 @@ class BlockerView(glwindow.GLWindow):
         glDisable(GL_BLEND)
 
 
+
+def make_nested_faces(blockerview, index, level, connections, faces):
+    """Hierarchical renderer that shows tree decomposition with transparent boxes.  Deeper partition
+       levels are drawn as progressively smaller boxes within their encosing partitions' boxes,
+       and outer boxes are made transparent so that inner boxes can be seen.
+    """
+    def get_color(level):
+        color = colors[level].value
+        if level < blockerview.maxdepth-1:
+            return add_alpha(color, 0.25)
+        else:
+            return add_alpha(color, 1.0)
+
+    # Create faces only when there is NOT a connection between our cell and the neighbor
+    # Cells at deeper levels have increasingly large margins -- 0.1 units per level
+    for face in all_faces:
+        if not connections[face]:
+            faces.append(Face(face, index, 1, 0.1*level, connections, get_color(level)))
+
+
+def make_leaf_faces(blockerview, index, level, connections, faces):
+    """Really basic leaf coloring scheme.  Colors each leaf by its position *within* its parent.
+       By default, this leaves no space between the leaves.
+    """
+    # Get the path to the cell at index
+    path = blockerview.paths[index]
+    leaf_level = len(path)-1
+
+    # This forces us to only render leaf cells
+    if level != leaf_level: return
+
+    partition = path[level]
+    for face in all_faces:
+        if not connections[face]:
+            color_index = partition.flat_index % len(colors)
+            color = add_alpha(colors[color_index].value, 1.0)
+            faces.append(Face(face, index, 1, 0.1, connections, color))
+
+
 def main():
     app = QApplication(sys.argv)    # Create a Qt application
-
-    p = Partition.create([4,4,8])
-    p.tile([4,4,1])
 
     p = Partition.create([4, 4, 4])
     p.div([2, 1, 1])
@@ -388,9 +391,10 @@ def main():
         child.div([2,2,2])
 
     mainwindow = QMainWindow()
-    glview = BlockerView(p, mainwindow)
-    mainwindow.setCentralWidget(glview)
+    glview = BlockerView(p, make_leaf_faces, mainwindow)
+#    glview = BlockerView(p, make_nested_faces, mainwindow)
 
+    mainwindow.setCentralWidget(glview)
     mainwindow.resize(800, 600)
     mainwindow.move(30, 30)
 
