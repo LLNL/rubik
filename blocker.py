@@ -149,24 +149,29 @@ def tilt(arr, axis, direction, slope = 1):
 
 class Partition(object):
     """Tree of views of an initial Box.  Each successive level is a set of views of the top-level box."""
-    def __init__(self, box, parent):
+    def __init__(self, box, parent, index, flat_index, level):
         """Constructs a child Partition.  Children have a view of the top-level array rather than a direct
            copy, and they do not have the Process list that the top-level Partition has.
         """
-        self.box       = box
-        self.procs     = None
-        self.parent    = parent
-        self.children  = np.array([], dtype=object)
+        self.box        = box
+        self.procs      = None
+        self.parent     = parent
+        self.index      = index
+        self.flat_index = flat_index
+        self.level      = level
+        self.children   = np.array([], dtype=object)
 
     @classmethod
     def create(cls, shape):
         """Constructs the top-level partition, with the original numpy array and a process list
            running through it.
         """
-        box      = np.ndarray(shape, dtype=object)
-        procs    = Process.make_list(xrange(0, box.size))
-        box.flat = procs
-        p = Partition(box, None)
+        box       = np.ndarray(shape, dtype=object)
+        procs     = Process.make_list(xrange(0, box.size))
+        box.flat  = procs
+        index     = (0,) * len(box.shape)
+
+        p = Partition(box, None, index, 0, 0)
         p.procs = procs
         return p
 
@@ -187,10 +192,14 @@ class Partition(object):
         """Cuts this partition into a set of views, and make children out of them. See cut()."""
         views = cut(self.box, divisors, slicers)   # Get an array of all the subpartitions (views)
 
-        def create_child_partition(view):
-            return Partition(view, self)
-        create_children = np.vectorize(create_child_partition)
-        self.children = create_children(views)     # Make a Partition object out of each view
+        # Create partitions so that they know their index and flat index within the parent's child array.
+        flat_index = 0
+        for index in np.ndindex(views.shape):
+            views[index] = Partition(views[index], self, index, flat_index, self.level + 1)
+            flat_index += 1
+
+        # Finally assign the numpy array to children
+        self.children = views
 
     # === Reordering Routines ===================================================================
     def transpose(self, axes):

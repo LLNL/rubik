@@ -12,21 +12,58 @@ import numpy as np
 
 # True for perspective projection, false for ortho
 perspective = True
-solid_interior = True
-
-# If the interior blocks are solid, use more opacity to reveal them
-if solid_interior: alpha = 0.25
-else:              alpha = 0.4
 
 black, white = ((0.0, 0.0, 0.0, 1.0), (1.0, 1.0, 1.0, 1.0))
 clear_color = white
 
-colors = [(1.0, 0.3, 0.3, alpha),
-          (0.3, 1.0, 0.3, alpha),
-          (0.3, 0.3, 1.0, alpha),
-          (0.3, 1.0, 1.0, alpha),
-          (1.0, 0.3, 1.0, alpha),
-          (1.0, 1.0, 0.3, alpha)]
+# Really basic color list.  Smart coloring could use some work.
+# Note that this color list has no alpha values.  Use add_alpha to add this.
+class color:
+    def __init__(self, name, value):
+        self.name = name
+        self.value = value
+
+colors = [
+    color("red",           (1.000, 0.000, 0.000)),
+    color("green",         (0.000, 1.000, 0.000)),
+    color("blue",          (0.000, 0.000, 1.000)),
+    color("yellow",        (1.000, 1.000, 0.000)),
+    color("cyan",          (0.000, 1.000, 1.000)),
+    color("magenta",       (1.000, 0.000, 1.000)),
+    color("white",         (1.000, 1.000, 1.000)),
+    color("black",         (0.000, 0.000, 0.000)),
+    color("grey",          (0.745, 0.745, 0.745)),
+    color("light grey",    (0.827, 0.827, 0.827)),
+    color("orange red",    (1.000, 0.271, 0.000)),
+    color("dark orange",   (1.000, 0.549, 0.000)),
+    color("orange",        (1.000, 0.647, 0.000)),
+    color("gold",          (1.000, 0.843, 0.000)),
+    color("light yellow",  (1.000, 1.000, 0.878)),
+    color("dark green",    (0.000, 0.392, 0.000)),
+    color("pale green",    (0.596, 0.984, 0.596)),
+    color("navy",          (0.000, 0.000, 0.502)),
+    color("royal blue",    (0.255, 0.412, 0.882)),
+    color("sky blue",      (0.529, 0.808, 0.922)),
+    color("light blue",    (0.678, 0.847, 0.902)),
+    color("turquoise",     (0.251, 0.878, 0.816)),
+    color("aquamarine",    (0.498, 1.000, 0.831)),
+    color("dark violet",   (0.580, 0.000, 0.827)),
+    color("purple",        (0.627, 0.125, 0.941)),
+    color("violet",        (0.933, 0.510, 0.933)),
+    color("deep pink",     (1.000, 0.078, 0.576)),
+    color("hot pink",      (1.000, 0.412, 0.706)),
+    color("pink",          (1.000, 0.753, 0.796)),
+    color("brown",         (0.647, 0.165, 0.165)),
+    color("coral",         (1.000, 0.498, 0.314)),
+    color("khaki",         (0.941, 0.902, 0.549)),
+    color("beige",         (0.961, 0.961, 0.863)),
+    color("light coral",   (0.941, 0.502, 0.502)),
+    color("ivory",         (1.000, 1.000, 0.941))]
+
+def add_alpha(color, alpha):
+    with_alpha = list(color)
+    with_alpha.append(alpha)
+    return tuple(with_alpha)
 
 # Indices for stencil arrays.
 all_faces = range(6)
@@ -148,6 +185,9 @@ class BlockerView(glwindow.GLWindow):
         self.paths = partition.invert()
         self.faces = None
 
+        # Compute maxdepth here to save cycles later
+        self.maxdepth = max(len(l) for l in self.paths.flat)
+
         # Initial tranlation is dependent on the size of the shape we're using
         shape = self.paths.shape
         depth = 3 * shape[2]
@@ -203,37 +243,92 @@ class BlockerView(glwindow.GLWindow):
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
 
-    def get_color(self, level):
-        color = colors[level]
-        maxdepth = max(len(l) for l in self.paths.flat)
-        if solid_interior and level == maxdepth-1:
-            color=(color[0], color[1], color[2], 1.0)
-        return color
 
-    def make_faces(self):
-        faces = []
+    def iterate_cells(self, cell_handler, results = None):
+        """Iterates over all cells in the array, and calls the provided cell_handler function for each cell.
+           The function should look something like this:
+
+               def cell_handler(index, level, connections, results):
+                   pass
+
+           Parameters of the handler:
+           index         This is the index within the top-level partition of the cell that's being iterated.
+                         Note that this will always be a 3d index, with y and z set to zero if either of those
+                         dimensions is not needed.  You don't need to pad this yourself.
+
+           level         The level within the partition hierarchy that we're calling this handler for.  i.e.
+                         if a cell is contained within 3 nested partitions, handler will be called 3 times
+                         with 0,1, and 2 as values for level.
+
+           connections   Connections that this cell has with its neighbors at the specified level.  This array
+                         will have 6 boolean-valued elements, one for each face of the cell being iterated.
+                         You can use the values of the global all_faces (i.e. left, right, down, up, far, near)
+                         to iterate over the connections array.  This could be used, e.g., to tell you whether
+                         you need to draw a face between your cell and a particular neighbor.
+
+           results       This is the results list passed to iterate_cells.  Your handler function can append
+                         to this list as it creates Faces (or anything else)
+        """
         shape = self.paths.shape
         for index in np.ndindex(shape):
+            # Path is our local list in the inverted partition structure.
             path = self.paths[index]
 
+            # This loop iterates over levels of the partition structure and computes connections between cells
             for l in range(len(path)):
+                # List to hold connections in each direction
                 connect = [False] * 6
                 for dim in range(self.paths.ndim):
+                    # Determine whether we're connected to our neighbor in the negative direction along dim
                     low = translate(index, dim, -1)
                     if low[dim] >= 0 and len(self.paths[low]) > l and self.paths[low][l] == path[l]:
                         connect[2*dim] = True
+                    # Determine whether we're connected to our neighbor in the positive direction along dim
                     high = translate(index, dim, 1)
                     if high[dim] <= shape[dim]-1 and len(self.paths[high]) > l and self.paths[high][l] == path[l]:
                         connect[2*dim+1] = True
 
-                # construct shapes around the world center, not at their actual coordinates
+                # Pass a 3d index to the cell handler and let it do its job
                 center = pad(index, 3)
+                cell_handler(center, l, connect, results)
 
-                # Create all faces we're going to render
-                for face in all_faces:
-                    if not connect[face]:
-                        faces.append(Face(face, center, 1, 0.1*l, connect, self.get_color(l)))
-        return faces
+    def make_nested_faces(self, index, level, connections, faces):
+        """Hierarchical renderer that shows tree decomposition with transparent boxes.  Deeper partition
+           levels are drawn as progressively smaller boxes within their encosing partitions' boxes,
+           and outer boxes are made transparent so that inner boxes can be seen.
+        """
+        def get_color(level):
+            color = colors[level].value
+            if level < self.maxdepth-1:
+                return add_alpha(color, 0.25)
+            else:
+                return add_alpha(color, 1.0)
+
+        # Create faces only when there is NOT a connection between our cell and the neighbor
+        # Cells at deeper levels have increasingly large margins -- 0.1 units per level
+        for face in all_faces:
+            if not connections[face]:
+                faces.append(Face(face, index, 1, 0.1*level, connections, get_color(level)))
+
+
+    def make_leaf_faces(self, index, level, connections, faces):
+        """Really basic leaf coloring scheme.  Colors each leaf by its position *within* its parent.
+           By default, this leaves no space between the leaves.
+        """
+        # Get the path to the cell at index
+        path = self.paths[index]
+        leaf_level = len(path)-1
+
+        # This forces us to only render leaf cells
+        if level != leaf_level: return
+
+        partition = path[level]
+        for face in all_faces:
+            if not connections[face]:
+                color_index = partition.flat_index % len(colors)
+                color = add_alpha(colors[color_index].value, 1.0)
+                faces.append(Face(face, index, 1, 0.1, connections, color))
+
 
     def paintGL(self):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -242,7 +337,9 @@ class BlockerView(glwindow.GLWindow):
         self.orient_scene()
 
         if not self.faces:
-            self.faces = self.make_faces()
+            self.faces = []
+#            self.iterate_cells(self.make_nested_faces, self.faces)
+            self.iterate_cells(self.make_leaf_faces, self.faces)
 
         # Must sort faces in far-to-near z order for transparency
         mdl = np.array(glGetDoublev(GL_MODELVIEW_MATRIX)).flat
@@ -289,8 +386,6 @@ def main():
     p.div([2, 1, 1])
     for child in p:
         child.div([2,2,2])
-        for c in child:
-            c.div([2,1,1])
 
     mainwindow = QMainWindow()
     glview = BlockerView(p, mainwindow)
