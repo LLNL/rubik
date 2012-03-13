@@ -139,12 +139,16 @@ def tilt(arr, axis, direction, slope = 1):
                                                                3 7 2
                                                                6 1 5
     """
+    # Can't tilt in same direction we're iterating.
     if axis == direction:
         raise Exception("Error: axis cannot be same as tilt direction.")
 
+    # compensate for subtracted dimension
+    if direction > axis:
+        direction -= 1
+
     for i in xrange(arr.shape[axis]):
         plane = hyperplane(arr, axis, i)
-        if direction > axis: direction -= 1   # compensate for subtracted dimension
         plane.flat = np.roll(plane, i * slope, axis=direction).flat
 
 class Partition(object):
