@@ -147,7 +147,7 @@ def tilt(arr, axis, direction, slope = 1):
     if direction > axis:
         direction -= 1
 
-    for i in xrange(arr.shape[axis]):
+    for i in xrange(1, arr.shape[axis]):
         plane = hyperplane(arr, axis, i)
         plane.flat = np.roll(plane, i * slope, axis=direction).flat
 
