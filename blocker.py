@@ -121,27 +121,36 @@ def cut(arr, divisors, slicers = div):
     return parts
 
 
-def tilt(arr, axis, direction, slope = 1):
-    """Tilts the elements in arr along the specified axis.
-       direction determines the axis whose direction we should tilt in.
-       slope specifies how steep the tilt should be. Here are some examples in 2d.
-       In 2d, each 'hyperplane' is a line, but the routine is general for the nd case.
+def shear(arr, axis, direction, slope = 1):
+    """Shear the set of hyperplanes in arr defined by axis.
+       direction determines the dimension along which we shear.
+       slope specifies how steep the shear should be.
 
-       Start with 2d array:                                    0 1 2
-                                                               3 4 5
-                                                               6 7 8
+       Here are some examples in 2d. In 2d, each 'hyperplane' is a line, but
+       the routine is general for the nd case.
 
-       Tilt array along 0 axis in 1 direction w/slope 1:       0 1 2
-                                                               5 3 4
+                                                           0
+                                                           ^
+       Start with a 2d array:                              |   6 7 8
+                                                           |   3 4 5
+                                                           |   0 1 2
+							   ----------> 1
+
+       shear(0, 1, 1)
+       Shear hyperplanes defined by axis 0 in 1 direction with a slope of 1:
                                                                7 8 6
+                                                               5 3 4
+                                                               0 1 2
 
-       Tilt array along 1 axis in 0 direction w/slope 2:       0 4 8
-                                                               3 7 2
+       shear(1, 0, 2)
+       Shear hyperplanes defined by axis 1 in 0 direction with a slope of 2:
                                                                6 1 5
+                                                               3 7 2
+                                                               0 4 8
     """
-    # Can't tilt in same direction we're iterating.
+    # Can't shear a hyperplane in a perpendicular direction.
     if axis == direction:
-        raise Exception("Error: axis cannot be same as tilt direction.")
+        raise Exception("Error: axis cannot be same as shear direction.")
 
     # compensate for subtracted dimension
     if direction > axis:
@@ -212,9 +221,10 @@ class Partition(object):
         """
         self.box.flat = self.box.transpose(axes).flat
 
-    def tilt(self, axis, direction, slope):
-        """Tilts the box in this partition along one axis in the direction of another.  See tilt()."""
-        tilt(self.box, axis, direction, slope)
+    def shear(self, axis, direction, slope):
+	"""Shears the hyperplanes in this partition defined by one axis in the
+	   direction of another. See shear()."""
+        shear(self.box, axis, direction, slope)
 
     def zorder(self):
         """Reorder the processes in this box in z order."""
