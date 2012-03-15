@@ -160,6 +160,34 @@ def shear(arr, axis, direction, slope = 1):
         plane = hyperplane(arr, axis, i)
         plane.flat = np.roll(plane, i * slope, axis=direction).flat
 
+
+def tilt(arr, axis, direction, slope = 1):
+    """Tilt the set of hyperplanes defined by axis perpendicular to the
+       hyperplanes.
+       direction defines the dimension in which the tilt is performed.
+       slope specifies how steep the tilt should be.
+
+       Intuitively, in 3d, tilting a set of 2d planes (say XY) in the direction
+       of its perpendicular (Z) along one of its dimensions (X or Y) is the same
+       as shearing a set of perpendicular [hyper]planes (YZ or XZ respectively)
+       along the perpendicular (Z). In other words,
+       tile(0, 2, slope) = shear(2, 0, slope)
+       tile(0, 1, slope) = shear(1, 0, slope)
+    """
+
+    # 'axis' is the subtracted dimension and hence cannot tilt in that dimension
+    if axis == direction:
+        raise Exception("Error: axis cannot be the same as the tilt dimension.")
+
+    # compensate for subtracted dimension
+    if axis > direction:
+        axis -= 1
+
+    for i in xrange(1, arr.shape[direction]):
+        plane = hyperplane(arr, direction, i)
+        plane.flat = np.roll(plane, i * slope, axis=axis).flat
+
+
 class Partition(object):
     """Tree of views of an initial Box.  Each successive level is a set of views of the top-level box."""
     def __init__(self, box, parent, index, flat_index, level):
@@ -225,6 +253,11 @@ class Partition(object):
 	"""Shears the hyperplanes in this partition defined by one axis in the
 	   direction of another. See shear()."""
         shear(self.box, axis, direction, slope)
+
+    def tilt(self, axis, direction, slope):
+	"""Tilts the hyperplanes in this partition defined by one axis in
+	   one of the other directions. See tilt()."""
+        tilt(self.box, axis, direction, slope)
 
     def zorder(self):
         """Reorder the processes in this box in z order."""

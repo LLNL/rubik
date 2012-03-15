@@ -31,8 +31,8 @@ if __name__ == "__main__":
     torus.tile(tbgp)
 
     torus.map(app)
-    torus.newtilt(0, 1, 1)
-    torus.newtilt(0, 2, 1)
+    torus.tilt(0, 1, 1)
+    torus.tilt(0, 2, 1)
     # print torus.box
     # print ""
 
