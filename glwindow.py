@@ -30,11 +30,12 @@ class GLWindow(QGLWidget):
         self.last_pos = [0,0,0]
         self.dragging = False
 
-        # Initial
-        self.translation = np.zeros([3])
+        # Initialize key tracking
+        self.pressed_keys = set()
+        self.setFocusPolicy(Qt.StrongFocus)
 
-        # Initial rotation is just the identity matrix.
-        self.rotation = np.identity(4)
+        self.translation = np.zeros([3])      # Initial translation is zero in all directions.
+        self.rotation = np.identity(4)        # Initial rotation is just the identity matrix.
 
 
     def map_to_sphere(self, x, y):
@@ -119,10 +120,23 @@ class GLWindow(QGLWidget):
            glRotate() based on self.translation and self.rotation.
            """
         if event.orientation() == Qt.Orientation.Vertical:
-            self.translation[2] += .01 * event.delta()
+            if int(Qt.Key_Shift) in self.pressed_keys:
+                self.translation[1] += .01 * event.delta()
+            else:
+                self.translation[2] += .01 * event.delta()
+
         elif event.orientation() == Qt.Orientation.Horizontal:
-            self.translation[0] += .01 * event.delta()
+            self.translation[0] -= .01 * event.delta()
+
+
         self.updateGL()
+
+    def keyPressEvent(self, event):
+        self.pressed_keys.add(event.key())
+
+    def keyReleaseEvent(self, event):
+        if event.key() in self.pressed_keys:
+            self.pressed_keys.remove(event.key())
 
 
     def orient_scene(self):
