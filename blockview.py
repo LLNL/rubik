@@ -30,10 +30,7 @@ colors = [
     color("yellow",        (1.000, 1.000, 0.000)),
     color("cyan",          (0.000, 1.000, 1.000)),
     color("magenta",       (1.000, 0.000, 1.000)),
-    color("white",         (1.000, 1.000, 1.000)),
     color("black",         (0.000, 0.000, 0.000)),
-    color("grey",          (0.745, 0.745, 0.745)),
-    color("light grey",    (0.827, 0.827, 0.827)),
     color("orange red",    (1.000, 0.271, 0.000)),
     color("dark orange",   (1.000, 0.549, 0.000)),
     color("orange",        (1.000, 0.647, 0.000)),
@@ -58,7 +55,10 @@ colors = [
     color("khaki",         (0.941, 0.902, 0.549)),
     color("beige",         (0.961, 0.961, 0.863)),
     color("light coral",   (0.941, 0.502, 0.502)),
-    color("ivory",         (1.000, 1.000, 0.941))]
+    color("ivory",         (1.000, 1.000, 0.941)),
+    color("white",         (1.000, 1.000, 1.000)),
+    color("grey",          (0.745, 0.745, 0.745)),
+    color("light grey",    (0.827, 0.827, 0.827))]
 
 def add_alpha(color, alpha):
     with_alpha = list(color)
@@ -414,16 +414,23 @@ def main():
     app = QApplication(sys.argv)    # Create a Qt application
 
     p = Partition.create([8, 8, 8])
-    p.tile([4, 4, 4])
+    p.tile([8,2,4])
     p.traverse_cells(assign_flat_index_gradient_color)
-#    p.zorder()
-#    p.tilt(0,1,1)
-#    p.tilt(0,2,1)
+
+    q = Partition.create([8,8,8])
+    q.tile([4,4,4])
+    q.map(p)
+
+    for child in q:
+        child.tilt(0,1,1)
+        child.tilt(0,2,1)
 
     mainwindow = QMainWindow()
-#    glview = BlockerView(p, make_leaf_faces, mainwindow)
-#    glview = BlockerView(p, make_nested_faces, mainwindow)
-    glview = BlockerView(p, make_colored_faces, mainwindow)
+
+#    renderer = make_nested_faces
+#    renderer = make_leaf_faces
+    renderer = make_colored_faces
+    glview = BlockerView(p, renderer, mainwindow)
 
     mainwindow.setCentralWidget(glview)
     mainwindow.resize(800, 600)
