@@ -302,7 +302,7 @@ class Partition(object):
             for child in self.children.flat:
                 child.plot(subgraph)
 
-    def traverse_cells(self, visitor, path=[]):
+    def traverse_cells(self, visitor, path=None):
         """Call a visitor function on each cell in the Partition.  The visitor should this:
 
            def visitor(global_index, path, element, index):
@@ -321,6 +321,7 @@ class Partition(object):
         if not path:
             # TODO: we probably shouldn't modify the contents if we want the Partition to be
             # TODO: an abstract container.  Consider wrapping the elements in our own class
+            path = []
             self.assign_coordinates()
             path.append(Partition.PathElement(self, (0,)*self.box.ndim))
 
