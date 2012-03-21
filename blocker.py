@@ -67,7 +67,6 @@ class Process(object):
         """Allows a Process list to be assigned directly into a numpy ndarray."""
         return np.array([x for x in self], dtype=type)
 
-
 def hyperplane(arr, axis, index):
     """This generates a slice list that will select one hyperplane out of a numpy ndarray by
        fixing one axis to a particular coordinate.
@@ -189,6 +188,22 @@ def tilt(arr, axis, direction, slope = 1):
 
 
 class Partition(object):
+
+    class PathElement(object):
+        """This class describes a partition in a hierarchy.  It contains the partition and its index
+           within its parent partition. """
+        def __init__(self, partition, index):
+            self.partition = partition
+            self.index = index
+
+        def get_flat_index(self):
+            """Uses the partition and the index to create a multi-index"""
+            if not self.partition.parent:
+                return 0
+            else:
+                return np.ravel_multi_index(self.index, self.partition.parent.children.shape)
+        flat_index = property(get_flat_index)
+
     """Tree of views of an initial Box.  Each successive level is a set of views of the top-level box."""
     def __init__(self, box, parent, index, flat_index, level):
         """Constructs a child Partition.  Children have a view of the top-level array rather than a direct
@@ -329,22 +344,44 @@ class Partition(object):
             for child in self.children.flat:
                 child.plot(subgraph)
 
-    def __invert_helper(self):
-        for path in self.box.flat:
-            path.append(self)
-        for child in self.children.flat:
-            child.__invert_helper()
+    def traverse_cells(self, visitor, path=[]):
+        """Call a visitor function on each cell in the Partition.  The visitor should this:
 
-    def invert(self, coordinate=None):
+           def visitor(global_index, path, element, index):
+               pass
+
+           Parameters:
+             global_index      This is the index in the top-level partition.  i.e. the one you called
+                               traverse_cells on.
+             path              This is a list of PathElements describing the nesting of the cell within
+                               partitions.  For a PathElement p there are two properties of interest:
+                                 p[l].partition   the Partition at nesting level l
+                                 p[l].index       the index of p[l] in its parent partition
+             element           The element at self.box[global_index]
+             index             The local index of the element within its parent partition
+        """
+        if not path:
+            # TODO: we probably shouldn't modify the contents if we want the Partition to be
+            # TODO: an abstract container.  Consider wrapping the elements in our own class
+            self.assign_coordinates()
+            path.append(Partition.PathElement(self, (0,)*self.box.ndim))
+
+        if self.children.size:
+            for index, child in np.ndenumerate(self.children):
+                path.append(Partition.PathElement(child, index))
+                child.traverse_cells(visitor, path)
+                path.pop()
+        else:
+            for index, elt in np.ndenumerate(self.box):
+                visitor(elt.coord, path, elt, index)
+
+    def invert(self):
         """Returns an array of the same shape as this Partition's box.  Each cell of this array
            will contain a list of partitions that contain that cell, ordered from top to bottom.
         """
-        temp = self.box.copy()
-        for i in xrange(self.box.size):
-            self.box.flat[i] = []
-        self.__invert_helper()
-
         flat_box = self.box.copy()
-        self.box.flat = temp.flat
-        return flat_box
+        def path_assigner(global_index, path, elt, index):
+            flat_box[global_index] = path[:]
 
+        self.traverse_cells(path_assigner)
+        return flat_box

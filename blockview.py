@@ -184,6 +184,7 @@ class BlockerView(glwindow.GLWindow):
         """
         glwindow.GLWindow.__init__(self, parent)
 
+        self.partition = partition
         if partition.box.ndim > 3:
             raise Exception("Can only view up to 3-dimensional partitions.")
         self.paths = partition.invert()
@@ -287,11 +288,11 @@ class BlockerView(glwindow.GLWindow):
                 for dim in range(self.paths.ndim):
                     # Determine whether we're connected to our neighbor in the negative direction along dim
                     low = translate(index, dim, -1)
-                    if low[dim] >= 0 and len(self.paths[low]) > l and self.paths[low][l] == path[l]:
+                    if low[dim] >= 0 and len(self.paths[low]) > l and self.paths[low][l].partition == path[l].partition:
                         connect[2*dim] = True
                     # Determine whether we're connected to our neighbor in the positive direction along dim
                     high = translate(index, dim, 1)
-                    if high[dim] <= shape[dim]-1 and len(self.paths[high]) > l and self.paths[high][l] == path[l]:
+                    if high[dim] <= shape[dim]-1 and len(self.paths[high]) > l and self.paths[high][l].partition == path[l].partition:
                         connect[2*dim+1] = True
 
                 # Pass a 3d index to the cell handler and let it do its job
@@ -374,25 +375,55 @@ def make_leaf_faces(blockerview, index, level, connections, faces):
     # This forces us to only render leaf cells
     if level != leaf_level: return
 
-    partition = path[level]
+    partition = path[level].partition
     for face in all_faces:
         if not connections[face]:
             color_index = partition.flat_index % len(colors)
             color = add_alpha(colors[color_index].value, 1.0)
             faces.append(Face(face, index, 1, 0.1, connections, color))
 
+def make_colored_faces(blockerview, index, level, connections, faces):
+    """Color cells by a color attribute on each process."""
+    # Get the path to the cell at index
+    path = blockerview.paths[index]
+    leaf_level = len(path)-1
+
+    # This forces us to only render leaf cells
+    if level != leaf_level: return
+
+    process = blockerview.partition.box[index]
+    partition = path[level].partition
+    for face in all_faces:
+        if not connections[face]:
+            faces.append(Face(face, index, 1, 0.1, connections, process.color))
+
+
+def assign_flat_index_gradient_color(global_index, path, element, index):
+    base_color    = colors[path[-1].flat_index].value
+    base_color    = add_alpha(base_color, 1.0)
+
+    partition     = path[-1].partition
+    flat_index    = np.ravel_multi_index(index, partition.box.shape)
+    percent_white = 1 - (flat_index / float(partition.box.size))
+
+    grey_part     = np.array((percent_white, percent_white, percent_white, 1.0))
+    color         = (base_color + 2*grey_part) / 3.0
+    element.color = tuple(color)
 
 def main():
     app = QApplication(sys.argv)    # Create a Qt application
 
-    p = Partition.create([4, 4, 4])
-    p.div([2, 1, 1])
-    for child in p:
-        child.div([2,2,2])
+    p = Partition.create([8, 8, 8])
+    p.tile([4, 4, 4])
+    p.traverse_cells(assign_flat_index_gradient_color)
+#    p.zorder()
+#    p.tilt(0,1,1)
+#    p.tilt(0,2,1)
 
     mainwindow = QMainWindow()
 #    glview = BlockerView(p, make_leaf_faces, mainwindow)
-    glview = BlockerView(p, make_nested_faces, mainwindow)
+#    glview = BlockerView(p, make_nested_faces, mainwindow)
+    glview = BlockerView(p, make_colored_faces, mainwindow)
 
     mainwindow.setCentralWidget(glview)
     mainwindow.resize(800, 600)
