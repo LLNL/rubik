@@ -10,62 +10,21 @@ import zorder
 import optparse, itertools, sys
 
 class Process(object):
-    """The process class represents a single task in a parallel application with a unique id
-       in [0,ntasks).  Processes exist in a doubly linked list that runs through the full id
-       space.  This allows us to quickly run through the ranks in order, even after a network
-       topology has been permuted extensively.
-
-       See Process.make_list() to create lists of processes from ranges of identifiers.
+    """The process class represents a single task in a parallel application with a
+       unique identifier.  Identifiers can be anything.
     """
-    def __init__(self, id, next=None, prev=None):
+    def __init__(self, id):
         """Constructs a process with a particular id, optionally as part of a list.
            Parameters:
              id      arbitrary process identifier.
-             next    next Process in a list.
-             prev    previous Process in a list.
         """
         self.id      = id
         self.coord   = None
 
-        self.next = next
-        if next: next.prev = self
-        self.prev = prev
-        if prev: prev.next = self
-
-    @classmethod
-    def make_list(cls, iterable):
-        """Takes an iterable over a list of identifiers and builds a linked list of
-           Processes out of it.  Can be used with ranges to create lists of ranks, but allows
-           arbitrary process identifiers.
-        """
-        head = None
-        tail = None
-        for element in iter(iterable):
-            tail = Process(element, None, tail)
-            if not head: head = tail
-        return head
-
-    def __iter__(self):
-        """Iterate over this list forward, starting from this node."""
-        node = self
-        while node:
-            yield node
-            node = node.next
-
-    def __reversed__(self):
-        """Iterate over this list backwards, starting from this node."""
-        node = self
-        while node:
-            yield node
-            node = node.prev
-
     def __str__(self):
         """String representation for printing is just the identifier."""
-        return "%d" % self.id
+        return "<Process %d>" % self.id
 
-    def __array__(self, type):
-        """Allows a Process list to be assigned directly into a numpy ndarray."""
-        return np.array([x for x in self], dtype=type)
 
 def hyperplane(arr, axis, index):
     """This generates a slice list that will select one hyperplane out of a numpy ndarray by
@@ -222,13 +181,12 @@ class Partition(object):
         """Constructs the top-level partition, with the original numpy array and a process list
            running through it.
         """
-        box       = np.ndarray(shape, dtype=object)
-        procs     = Process.make_list(xrange(0, box.size))
-        box.flat  = procs
-        index     = (0,) * len(box.shape)
+        box = np.ndarray(shape, dtype=object)
+        index = (0,) * len(box.shape)
 
         p = Partition(box, None, index, 0, 0)
-        p.procs = procs
+        p.procs = [Process(i) for i in xrange(0, box.size)]
+        p.box.flat = p.procs
         return p
 
     # === Partitioning routines =================================================================
