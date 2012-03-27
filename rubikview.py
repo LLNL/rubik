@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import sys, math, itertools
 from PySide.QtCore import *
 from PySide.QtGui import *
@@ -176,11 +174,11 @@ class Face(object):
                    (scale * self.normal[2]) + self.center[2])
 
 
-class BlockerView(glwindow.GLWindow):
+class RubikView(glwindow.GLWindow):
     def __init__(self, partition, face_renderer, parent=None):
         """Creates a view of the specified partition using the supplied face renderer.
            face_renderer should be a cell handler suitable for passing to the iterate_cells routine.
-           It is used to create the faces this BlockerView will render.
+           It is used to create the faces this RubikView will render.
         """
         glwindow.GLWindow.__init__(self, parent)
 
@@ -410,36 +408,3 @@ def assign_flat_index_gradient_color(global_index, path, element, index):
     color         = (base_color + 2*grey_part) / 3.0
     element.color = tuple(color)
 
-def main():
-    app = QApplication(sys.argv)    # Create a Qt application
-
-    p = Partition.create([8, 8, 8])
-    p.tile([8,2,4])
-    p.traverse_cells(assign_flat_index_gradient_color)
-
-    q = Partition.create([8,8,8])
-    q.tile([4,4,4])
-    q.map(p)
-
-    for child in q:
-        child.tilt(0,1,1)
-        child.tilt(0,2,1)
-
-    mainwindow = QMainWindow()
-
-#    renderer = make_nested_faces
-#    renderer = make_leaf_faces
-    renderer = make_colored_faces
-    glview = BlockerView(p, renderer, mainwindow)
-
-    mainwindow.setCentralWidget(glview)
-    mainwindow.resize(800, 600)
-    mainwindow.move(30, 30)
-
-    mainwindow.show()
-    app.exec_()    # Enter Qt application main loop
-
-
-if __name__ == "__main__":
-    main()
-    sys.exit()

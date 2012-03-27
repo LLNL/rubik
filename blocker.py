@@ -146,6 +146,29 @@ def tilt(arr, axis, direction, slope = 1):
         plane.flat = np.roll(plane, i * slope, axis=axis).flat
 
 
+def zigzag(arr, axis, direction, depth = 1, stride=1):
+    """Zigzag shifts hyperplanes against each other in alternating directions
+	   arr, axis, and direction have the same meaning as for shear and tilt
+	   This command causes hyperplanes to be shifted in the indicated direction
+	   The shift grows linearly up to the depth specified in the parameter
+	   depth over stride hyperplanes
+	"""
+
+    # 'axis' is the subtracted dimension and hence cannot tilt in that dimension
+    if axis == direction:
+        raise Exception("Error: axis cannot be the same as the tilt dimension.")
+
+    # compensate for subtracted dimension
+    if axis > direction:
+        axis -= 1
+
+    for i in xrange(1, arr.shape[direction]):
+        base = (i/(stride*2))*(stride*2)+stride
+        shift = depth-(abs(i-base)*depth)/stride
+        plane = hyperplane(arr, direction, i)
+        plane.flat = np.roll(plane, shift, axis=axis).flat
+
+
 class Partition(object):
 
     class PathElement(object):
@@ -231,6 +254,11 @@ class Partition(object):
 	"""Tilts the hyperplanes in this partition defined by one axis in
 	   one of the other directions. See tilt()."""
         tilt(self.box, axis, direction, slope)
+
+    def zigzag(self, axis, direction, depth, stride):
+	"""Zigzags the hyperplanes in this partition defined by one axis in
+	   one of the other directions. See tilt()."""
+        zigzag(self.box, axis, direction, depth, stride)
 
     def zorder(self):
         """Reorder the processes in this box in z order."""
