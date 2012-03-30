@@ -5,7 +5,7 @@ from blocker import *
 
 if __name__ == "__main__":
     #   mp_r  mp_q  mp_p
-    blm = [32, 8, 16] # bench_ltr_mem
+    blm = [32, 8, 16] # bt_wb_06
     tblm = []
     tblm.append(int(sys.argv[1]))
     tblm.append(int(sys.argv[2]))
@@ -35,7 +35,9 @@ if __name__ == "__main__":
     # print torus.box
     # print ""
 
-    f = open('mapfile-%s-%s-%s-%s-%s-%s-%s' % (tblm[0],tblm[1],tblm[2],tbgp[0],tbgp[1],tbgp[2],tbgp[3]), 'w')
+    numpes = blm[0] * blm[1] * blm[2]
+
+    f = open('mapfile-%s-%s-%s-%s-%s-%s-%s-%s' % (numpes,tblm[0],tblm[1],tblm[2],tbgp[0],tbgp[1],tbgp[2],tbgp[3]), 'w')
     torus.write_map_file(f)
     f.close()
     print "output written to mapfile"
