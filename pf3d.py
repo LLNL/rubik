@@ -4,21 +4,20 @@ import sys
 from blocker import *
 
 if __name__ == "__main__":
-    #  mp_r mp_q mp_p
-    blm = [16,8,16] # bench_ltr_mem
+    #   mp_r  mp_q  mp_p
+    blm = [32, 8, 16] # bench_ltr_mem
     tblm = []
     tblm.append(int(sys.argv[1]))
     tblm.append(int(sys.argv[2]))
     tblm.append(int(sys.argv[3]))
 
-    #      Z Y X T
-    bgp = [8,8,8,4] # 512 node BG/P torus
+    #      X  Y   Z  T
+    bgp = [8, 8, 16, 4] # 1024 node BG/P torus
     tbgp = []
     tbgp.append(int(sys.argv[4]))
     tbgp.append(int(sys.argv[5]))
     tbgp.append(int(sys.argv[6]))
     tbgp.append(int(sys.argv[7]))
-
     
     # application topology
     app = Partition.create(blm)
@@ -31,8 +30,8 @@ if __name__ == "__main__":
     torus.tile(tbgp)
 
     torus.map(app)
-    torus.tilt(0, 1, 1)
-    torus.tilt(0, 2, 1)
+    torus.tilt(2, 0, 1)	# tilt XY planes in X
+    torus.tilt(2, 1, 1)	# tilt XY planes in Y
     # print torus.box
     # print ""
 
