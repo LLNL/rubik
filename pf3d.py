@@ -1,7 +1,7 @@
 #!/usr/bin/env python2.6
 
 import sys
-from blocker import *
+from rubik import *
 
 if __name__ == "__main__":
     #   mp_r  mp_q  mp_p
@@ -18,15 +18,15 @@ if __name__ == "__main__":
     tbgp.append(int(sys.argv[5]))
     tbgp.append(int(sys.argv[6]))
     tbgp.append(int(sys.argv[7]))
-    
+
     # application topology
-    app = Partition.create(blm)
+    app = box(blm)
     app.tile(tblm)
     # print app.box
     # print ""
 
     # processor topology
-    torus = Partition.create(bgp)
+    torus = box(bgp)
     torus.tile(tbgp)
 
     torus.map(app)

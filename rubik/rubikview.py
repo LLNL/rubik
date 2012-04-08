@@ -1,18 +1,21 @@
+"""
+This is a basic viewer for Rubik in the form of a Qt Widget.  You can plug this into
+a PySide GUI to view Rubik boxes using various types of renderers.
+"""
 import sys, math, itertools
 from PySide.QtCore import *
-from PySide.QtGui import *
 from PySide.QtOpenGL import *
 from OpenGL.GL import *
 
-from blocker import *
+from rubik import *
 import glwindow
 import numpy as np
 
 # True for perspective projection, false for ortho
 perspective = True
 
-black, white = ((0.0, 0.0, 0.0, 1.0), (1.0, 1.0, 1.0, 1.0))
-clear_color = white
+black, white, transparent = ((0.0, 0.0, 0.0, 1.0), (1.0, 1.0, 1.0, 1.0), (1.0, 1.0, 1.0, 0.0))
+clear_color = transparent
 
 # Really basic color list.  Smart coloring could use some work.
 # Note that this color list has no alpha values.  Use add_alpha to add this.
@@ -324,14 +327,14 @@ class RubikView(glwindow.GLWindow):
 
 
 
-def make_nested_faces(blockerview, index, level, connections, faces):
+def make_nested_faces(rubikview, index, level, connections, faces):
     """Hierarchical renderer that shows tree decomposition with transparent boxes.  Deeper partition
        levels are drawn as progressively smaller boxes within their encosing partitions' boxes,
        and outer boxes are made transparent so that inner boxes can be seen.
     """
     def get_color(level):
         color = colors[level].value
-        if level < blockerview.maxdepth-1:
+        if level < rubikview.maxdepth-1:
             return add_alpha(color, 0.25)
         else:
             return add_alpha(color, 1.0)
@@ -343,12 +346,12 @@ def make_nested_faces(blockerview, index, level, connections, faces):
             faces.append(Face(face, index, 1, 0.1*level, connections, get_color(level)))
 
 
-def make_leaf_faces(blockerview, index, level, connections, faces):
+def make_leaf_faces(rubikview, index, level, connections, faces):
     """Really basic leaf coloring scheme.  Colors each leaf by its position *within* its parent.
        By default, this leaves no space between the leaves.
     """
     # Get the path to the cell at index
-    path = blockerview.paths[index]
+    path = rubikview.paths[index]
     leaf_level = len(path)-1
 
     # This forces us to only render leaf cells
@@ -361,16 +364,16 @@ def make_leaf_faces(blockerview, index, level, connections, faces):
             color = add_alpha(colors[color_index].value, 1.0)
             faces.append(Face(face, index, 1, 0.1, connections, color))
 
-def make_colored_faces(blockerview, index, level, connections, faces):
+def make_colored_faces(rubikview, index, level, connections, faces):
     """Color cells by a color attribute on each process."""
     # Get the path to the cell at index
-    path = blockerview.paths[index]
+    path = rubikview.paths[index]
     leaf_level = len(path)-1
 
     # This forces us to only render leaf cells
     if level != leaf_level: return
 
-    process = blockerview.partition.box[index]
+    process = rubikview.partition.box[index]
     partition = path[level].partition
     for face in all_faces:
         if not connections[face]:

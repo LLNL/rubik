@@ -1,30 +1,10 @@
-#!/usr/bin/env python
-description = """\
-Blocker generates mapping files for torus and mesh networks according to
-structured transformations of blocks within the ranks.
-
-Todd Gamblin tgamblin@llnl.gov
+"""
+This file defines the basic partition class in rubik, along with a number of transformations
+and operations that can be performed on it.
 """
 import numpy as np
 import zorder
 import optparse, itertools, sys
-
-class Process(object):
-    """The process class represents a single task in a parallel application with a
-       unique identifier.  Identifiers can be anything.
-    """
-    def __init__(self, id):
-        """Constructs a process with a particular id, optionally as part of a list.
-           Parameters:
-             id      arbitrary process identifier.
-        """
-        self.id      = id
-        self.coord   = None
-
-    def __str__(self):
-        """String representation for printing is just the identifier."""
-        return "<Process %d>" % self.id
-
 
 def hyperplane(arr, axis, index):
     """This generates a slice list that will select one hyperplane out of a numpy ndarray by
@@ -132,7 +112,6 @@ def tilt(arr, axis, direction, slope = 1):
        tile(0, 2, slope) = shear(2, 0, slope)
        tile(0, 1, slope) = shear(1, 0, slope)
     """
-
     # 'axis' is the subtracted dimension and hence cannot tilt in that dimension
     if axis == direction:
         raise Exception("Error: axis cannot be the same as the tilt dimension.")
@@ -148,15 +127,14 @@ def tilt(arr, axis, direction, slope = 1):
 
 def zigzag(arr, axis, direction, depth = 1, stride=1):
     """Zigzag shifts hyperplanes against each other in alternating directions
-	   arr, axis, and direction have the same meaning as for shear and tilt
-	   This command causes hyperplanes to be shifted in the indicated direction
-	   The shift grows linearly up to the depth specified in the parameter
-	   depth over stride hyperplanes
-	"""
-
-    # 'axis' is the subtracted dimension and hence cannot tilt in that dimension
+       arr, axis, and direction have the same meaning as for shear and tilt
+       This command causes hyperplanes to be shifted in the indicated direction
+       The shift grows linearly up to the depth specified in the parameter
+       depth over stride hyperplanes
+    """
+    # 'axis' is the subtracted dimension and hence cannot zigzag in that dimension
     if axis == direction:
-        raise Exception("Error: axis cannot be the same as the tilt dimension.")
+        raise Exception("Error: axis cannot be the same as the zigzag dimension.")
 
     # compensate for subtracted dimension
     if axis > direction:
@@ -170,6 +148,7 @@ def zigzag(arr, axis, direction, depth = 1, stride=1):
 
 
 class Partition(object):
+    """Tree of views of an initial Box.  Each successive level is a set of views of the top-level box."""
 
     class PathElement(object):
         """This class describes a partition in a hierarchy.  It contains the partition and its index
@@ -186,7 +165,7 @@ class Partition(object):
                 return np.ravel_multi_index(self.index, self.partition.parent.children.shape)
         flat_index = property(get_flat_index)
 
-    """Tree of views of an initial Box.  Each successive level is a set of views of the top-level box."""
+
     def __init__(self, box, parent, index, flat_index, level):
         """Constructs a child Partition.  Children have a view of the top-level array rather than a direct
            copy, and they do not have the Process list that the top-level Partition has.
@@ -198,19 +177,6 @@ class Partition(object):
         self.flat_index = flat_index
         self.level      = level
         self.children   = np.array([], dtype=object)
-
-    @classmethod
-    def create(cls, shape):
-        """Constructs the top-level partition, with the original numpy array and a process list
-           running through it.
-        """
-        box = np.ndarray(shape, dtype=object)
-        index = (0,) * len(box.shape)
-
-        p = Partition(box, None, index, 0, 0)
-        p.procs = [Process(i) for i in xrange(0, box.size)]
-        p.box.flat = p.procs
-        return p
 
     # === Partitioning routines =================================================================
     def div(self, divisors):
@@ -257,7 +223,7 @@ class Partition(object):
 
     def zigzag(self, axis, direction, depth, stride):
 	"""Zigzags the hyperplanes in this partition defined by one axis in
-	   one of the other directions. See tilt()."""
+	   one of the other directions. See zigzag()."""
         zigzag(self.box, axis, direction, depth, stride)
 
     def zorder(self):

@@ -1,16 +1,19 @@
 #!/usr/bin/env python
 
-from rubikview import *
+import sys
+import rubik.rubikview as rv
+from rubik import *
 from PySide.QtCore import *
+from PySide.QtGui import *
 
 def main():
     app = QApplication(sys.argv)    # Create a Qt application
 
-    p = Partition.create([8, 8, 8])
+    p = box([8, 8, 8])
     p.tile([8,2,4])
-    p.traverse_cells(assign_flat_index_gradient_color)
+    p.traverse_cells(rv.assign_flat_index_gradient_color)
 
-    q = Partition.create([8,8,8])
+    q = box([8,8,8])
     q.tile([4,4,4])
     q.map(p)
 
@@ -20,10 +23,10 @@ def main():
 
     mainwindow = QMainWindow()
 
-#    renderer = make_nested_faces
-#    renderer = make_leaf_faces
-    renderer = make_colored_faces
-    glview = RubikView(p, renderer, mainwindow)
+#    renderer = rv.make_nested_faces
+#    renderer = rv.make_leaf_faces
+    renderer = rv.make_colored_faces
+    glview = rv.RubikView(p, renderer, mainwindow)
 
     mainwindow.setCentralWidget(glview)
     mainwindow.resize(800, 600)
