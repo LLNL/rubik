@@ -14,4 +14,4 @@ class Process(object):
 
     def __str__(self):
         """String representation for printing is just the identifier."""
-        return "<Process %d>" % self.id
+        return "%3d" % self.id

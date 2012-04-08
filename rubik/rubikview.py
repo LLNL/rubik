@@ -4,6 +4,7 @@ a PySide GUI to view Rubik boxes using various types of renderers.
 """
 import sys, math, itertools
 from PySide.QtCore import *
+from PySide.QtGui import *
 from PySide.QtOpenGL import *
 from OpenGL.GL import *
 
@@ -177,7 +178,7 @@ class RubikView(glwindow.GLWindow):
         # Compute maxdepth here to save cycles later
         self.maxdepth = max(len(l) for l in self.paths.flat)
 
-        # Initial tranlation is dependent on the size of the shape we're using
+        # Initial translation is dependent on the size of the shape we're using
         shape = self.paths.shape
         depth = 3 * shape[2]
         self.translation = np.array(
@@ -325,6 +326,13 @@ class RubikView(glwindow.GLWindow):
         glDepthMask(GL_TRUE)
         glDisable(GL_BLEND)
 
+    def keyReleaseEvent(self, event):
+        super(RubikView, self).keyReleaseEvent(event)
+        # This adds the ability to save an image file if you hit 'p' while the viewer is running.
+        if event.key() == Qt.Key_P:
+            name, selectedFilter = QFileDialog.getSaveFileName(self, "Save Image", "rubik-image.png", filter="*.png")
+            if name:
+                self.grabFrameBuffer(withAlpha=True).save(name)
 
 
 def make_nested_faces(rubikview, index, level, connections, faces):

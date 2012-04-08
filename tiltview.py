@@ -17,16 +17,16 @@ def main():
     q.tile([4,4,4])
     q.map(p)
 
-    for child in q:
-        child.tilt(0,1,1)
-        child.tilt(0,2,1)
+#    for child in q:
+#        child.tilt(0,1,1)
+#        child.tilt(0,2,1)
 
     mainwindow = QMainWindow()
 
 #    renderer = rv.make_nested_faces
 #    renderer = rv.make_leaf_faces
     renderer = rv.make_colored_faces
-    glview = rv.RubikView(p, renderer, mainwindow)
+    glview = rv.RubikView(q, renderer, mainwindow)
 
     mainwindow.setCentralWidget(glview)
     mainwindow.resize(800, 600)
