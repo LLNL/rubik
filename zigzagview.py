@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
-from rubikview import *
+from rubik.rubikview import *
 
 def main():
     app = QApplication(sys.argv)    # Create a Qt application
 
-    p = Partition.create([8, 8, 8])
+    p = box([8, 8, 8])
     p.div([2,2,2])
     p.traverse_cells(assign_flat_index_gradient_color)
 #    p.tilt(1,0,1)
