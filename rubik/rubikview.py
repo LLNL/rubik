@@ -389,7 +389,7 @@ def make_colored_faces(rubikview, index, level, connections, faces):
 
 
 def assign_flat_index_gradient_color(global_index, path, element, index):
-    base_color    = colors[path[-1].flat_index].value
+    base_color    = colors[path[-1].flat_index % 16].value
     base_color    = add_alpha(base_color, 1.0)
 
     partition     = path[-1].partition
