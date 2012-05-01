@@ -26,9 +26,13 @@ if __name__ == "__main__":
 
     # processor topology
     torus = box(bgp)
-    torus.tile(tbgp)
+    # torus.tile(tbgp)
+    torus.cut(tbgp, [mod, div, div, div])
 
     torus.map(app)
+    torus.tilt(0, 1, 1)
+    # torus.tilt(2, 1, 1)
+
     # print torus.box
     # print ""
 
