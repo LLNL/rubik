@@ -48,6 +48,19 @@ def add_alpha(color, alpha):
     with_alpha.append(alpha)
     return tuple(with_alpha)
 
+def crop(image):
+    """Crops the transparent background pixels out of a QImage and returns the result."""
+    min_x, min_y = image.width(), image.height()
+    max_x = max_y = 0
+    for x, y in np.ndindex(image.width(), image.height()):
+        # Find minimum and maximum values of x and y for which pixels are nontransparent
+        if qAlpha(image.pixel(x,y)):
+            min_x = min(x, min_x)
+            min_y = min(y, min_y)
+            max_x = max(x, max_x)
+            max_y = max(y, max_y)
+    return image.copy(min_x, min_y, (max_x - min_x), (max_y - min_y))
+
 # Indices for stencil arrays.
 all_faces = range(6)
 left, right, down, up, far, near = all_faces
@@ -332,7 +345,9 @@ class RubikView(glwindow.GLWindow):
         if event.key() == Qt.Key_P:
             name, selectedFilter = QFileDialog.getSaveFileName(self, "Save Image", "rubik-image.png", filter="*.png")
             if name:
-                self.grabFrameBuffer(withAlpha=True).save(name)
+                image = self.grabFrameBuffer(withAlpha=True)
+                image = crop(image)
+                image.save(name)
 
 
 def make_nested_faces(rubikview, index, level, connections, faces):
@@ -372,24 +387,28 @@ def make_leaf_faces(rubikview, index, level, connections, faces):
             color = add_alpha(colors[color_index].value, 1.0)
             faces.append(Face(face, index, 1, 0.1, connections, color))
 
-def make_colored_faces(rubikview, index, level, connections, faces):
-    """Color cells by a color attribute on each process."""
-    # Get the path to the cell at index
-    path = rubikview.paths[index]
-    leaf_level = len(path)-1
+class ColoredFaceRenderer(object):
+    """This renderer will color cells based on the value of the color attribtue on each process."""
+    def __init__(self, margin = 0.1):
+        self.margin = margin
 
-    # This forces us to only render leaf cells
-    if level != leaf_level: return
+    def __call__(self, rubikview, index, level, connections, faces):
+        # Get the path to the cell at index
+        path = rubikview.paths[index]
+        leaf_level = len(path)-1
 
-    process = rubikview.partition.box[index]
-    partition = path[level].partition
-    for face in all_faces:
-        if not connections[face]:
-            faces.append(Face(face, index, 1, 0.1, connections, process.color))
+        # This forces us to only render leaf cells
+        if level != leaf_level: return
+
+        process = rubikview.partition.box[index]
+        partition = path[level].partition
+        for face in all_faces:
+            if not connections[face]:
+                faces.append(Face(face, index, 1, self.margin, connections, process.color))
 
 
 def assign_flat_index_gradient_color(global_index, path, element, index):
-    base_color    = colors[path[-1].flat_index % 16].value
+    base_color    = colors[path[-1].flat_index % len(colors)].value
     base_color    = add_alpha(base_color, 1.0)
 
     partition     = path[-1].partition
@@ -400,3 +419,26 @@ def assign_flat_index_gradient_color(global_index, path, element, index):
     color         = (base_color + 2*grey_part) / 3.0
     element.color = tuple(color)
 
+
+def view_in_app(partition, renderer):
+    """This is a convenience function for making a viewer app out of a RubikView.
+       This handles the basics of making a Qt application and displaying a main
+       window, so that you can write simple scripts to bring up a RubikView.
+
+       This simply builds an app, brings it to the front, and returns the result
+       of Qt's exec_() function after it executes the app.
+    """
+    app = QApplication(sys.argv)
+    mainwindow = QMainWindow()
+
+    glview = RubikView(partition, renderer, mainwindow)
+
+    mainwindow.setCentralWidget(glview)
+    mainwindow.resize(800, 600)
+    mainwindow.move(30, 30)
+
+    mainwindow.show()
+    mainwindow.raise_()
+
+    # Enter Qt application main loop
+    return app.exec_()

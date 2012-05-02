@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 
-from rubik.rubikview import *
+from rubik import *
+import rubik.rubikview as rv
 
 def main():
-    app = QApplication(sys.argv)    # Create a Qt application
-
     p = box([8, 8, 8])
     p.div([2,2,2])
-    p.traverse_cells(assign_flat_index_gradient_color)
+    p.traverse_cells(rv.assign_flat_index_gradient_color)
 #    p.tilt(1,0,1)
     p.zigzag(1,0,1,1)
     p.zigzag(2,1,1,1)
@@ -23,20 +22,8 @@ def main():
 #        child.tilt(0,1,1)
 #        child.tilt(0,2,1)
 
-    mainwindow = QMainWindow()
 
-#    renderer = make_nested_faces
-#    renderer = make_leaf_faces
-    renderer = make_colored_faces
-    glview = RubikView(p, renderer, mainwindow)
-
-    mainwindow.setCentralWidget(glview)
-    mainwindow.resize(800, 600)
-    mainwindow.move(30, 30)
-
-    mainwindow.show()
-    app.exec_()    # Enter Qt application main loop
-
+    rv.view_in_app(p, rv.ColoredFaceRenderer())
 
 if __name__ == "__main__":
     main()
