@@ -231,20 +231,27 @@ class Partition(object):
         zorder.zorder(self.box)
 
     # === Other Operations =====================================================================
+    def leaves(self):
+      """Return all leaves for a partition"""
+      if self.children.size:
+	for child in self.children.flat:
+	  for leaf in child.leaves():
+	    yield leaf
+      else:
+	yield self
+
     def map(self, other):
         """Map the other partition onto this one.  First checks if partition sizes are compatible."""
-        # We will assign every element of other to self.  We need to swap in other's process list so
-        # that things are consistent.
         if self.procs:
             self.procs = other.procs
 
-        if self.children.size:
-            # We only want to do assignment at the leaves, so follow the views until we get there.
-            for child, otherchild in zip(self.children.flat, other.children.flat):
-                child.map(otherchild)
-        else:
-            # At leaves, assign procs through the view.
-            self.box.flat = other.box.flat
+	myleaves = [x for x in self.leaves()]
+	otherleaves = [x for x in other.leaves()]
+	if len(myleaves) != len(otherleaves):
+	    raise Exception("Error: Partitions are not compatible")
+
+        for leaf, otherleaf in zip(self.leaves(), other.leaves()):
+	    leaf.box.flat = otherleaf.box.flat
 
     def compatible(self, other):
         """True if and only if other can be mapped to self.  This implies that at each level of the
