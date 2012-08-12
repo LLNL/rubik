@@ -11,16 +11,4 @@ Contributors:  Abhinav Bhatele bhatele@llnl.gov
 import zorder
 from partition import *
 from process import *
-
-def box(shape):
-    """Constructs the top-level partition, with the original numpy array and a
-       process list running through it.
-    """
-    box = np.ndarray(shape, dtype=object)
-    index = (0,) * len(box.shape)
-
-    p = Partition(box, None, index, 0, 0)
-    p.procs = [Process(i) for i in xrange(0, box.size)]
-    p.box.flat = p.procs
-    return p
-
+from box import *

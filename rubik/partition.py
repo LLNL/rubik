@@ -178,6 +178,11 @@ class Partition(object):
         self.level      = level
         self.children   = np.array([], dtype=object)
 
+    # === Convenience attributes -- to be more numpy-like =======================================
+    shape = property(lambda self: self.box.shape)
+    size  = property(lambda self: self.box.size)
+    ndim  = property(lambda self: self.box.ndim)
+
     # === Partitioning routines =================================================================
     def div(self, divisors):
         self.cut(divisors, div)
