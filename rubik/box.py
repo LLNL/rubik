@@ -10,8 +10,10 @@ import os
 import re
 
 # Constant for environment variables
-SLURM_JOBID           = "SLURM_JOBID"
-SLURM_TASKS_PER_NODE = "SLURM_TASKS_PER_NODE"
+SLURM_JOBID	= "SLURM_JOBID"
+COBALT_JOBID	= "COBALT_JOBID"
+COBALT_PARTNAME	= "COBALT_PARTNAME"
+COBALT_JOBSIZE	= "COBALT_JOBSIZE"
 
 def box(shape):
     """Constructs the top-level partition, with the original numpy array and a
@@ -69,7 +71,7 @@ def autobox(tasks_per_node=1):
        This is designed to be run within a run script, after the partition is allocated but
        before the job is launched.
     """
-    prefs_directory = os.path.expanduser("~/.rubik")
+    prefs_directory = os.path.expanduser(".")
     if not os.path.isdir(prefs_directory):
         os.makedirs(prefs_directory)
     bgq_shape = os.path.join(prefs_directory, "bgq-shape")
@@ -78,6 +80,11 @@ def autobox(tasks_per_node=1):
 
     if SLURM_JOBID in os.environ:
         run_command = ["srun", bgq_shape]
+    elif COBALT_JOBID in os.environ:
+	num_nodes = os.environ[COBALT_JOBSIZE]
+	part_name = os.environ[COBALT_PARTNAME]
+	run_command = ["/bgsys/drivers/V1R1M1/ppc64/hlcs/bin/runjob -p 1 -n ", num_nodes, " --block ", part_name, " --verbose=INFO --envs BG_SHAREDMEMSIZE=32MB : ", bgq_shape]
+	print run_command
     else:
         raise Exception("Unsupported scheduler environment!")
 
