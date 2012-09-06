@@ -83,7 +83,13 @@ def autobox(tasks_per_node=1):
     elif COBALT_JOBID in os.environ:
 	num_nodes = os.environ[COBALT_JOBSIZE]
 	part_name = os.environ[COBALT_PARTNAME]
-	run_command = ["/bgsys/drivers/V1R1M1/ppc64/hlcs/bin/runjob -p 1 -n ", num_nodes, " --block ", part_name, " --verbose=INFO --envs BG_SHAREDMEMSIZE=32MB : ", bgq_shape]
+	run_command = ["/bgsys/drivers/V1R1M1/ppc64/hlcs/bin/runjob",
+                       "-p", "1",
+                       "-n", num_nodes,
+                       "--block", part_name,
+                       "--verbose=INFO",
+                       "--envs", "BG_SHAREDMEMSIZE=32MB",
+                       ":", bgq_shape]
 	print run_command
     else:
         raise Exception("Unsupported scheduler environment!")

@@ -15,6 +15,7 @@ from OpenGL.GL import *
 import math
 import numpy as np
 
+
 class GLWindow(QGLWidget):
     """ This class implements basic support for interactive OpenGL application.  This includes support
         for rotation and translation using the mouse.  Other than handling mouse events for basic interactive

@@ -15,7 +15,9 @@ import numpy as np
 # True for perspective projection, false for ortho
 perspective = True
 
-black, white, transparent = ((0.0, 0.0, 0.0, 1.0), (1.0, 1.0, 1.0, 1.0), (1.0, 1.0, 1.0, 0.0))
+black, white, transparent = ((0.0, 0.0, 0.0, 1.0),
+                             (1.0, 1.0, 1.0, 1.0),
+                             (1.0, 1.0, 1.0, 0.0))
 clear_color = transparent
 
 # Really basic color list.  Smart coloring could use some work.
