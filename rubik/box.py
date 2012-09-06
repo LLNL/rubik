@@ -26,41 +26,79 @@ def box(shape):
     return p
 
 
-def autobox(tasks_per_node=None):
+def create_bgq_shape_executable(exe_name):
+    """Creates an executable that grabs the torus dimensions from the BGQ MPIX routines.
+       There's no more portable way to do this on Q at the moment.
+    """
+    bgq_shape_source = "%s.C" % exe_name
+    source_file = open(bgq_shape_source, "w")
+    source_file.write("""
+#include <iostream>
+#include <mpi.h>
+#include <mpix.h>
+using namespace std;
+
+int main(int argc, char **argv) {
+    MPI_Init(&argc,&argv);
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    if (rank == 0) {
+        MPIX_Hardware_t hw;
+        MPIX_Hardware(&hw);
+        cout << hw.Size[0];
+        for (int i=1; i < hw.torus_dimension; i++) {
+            cout << "x" << hw.Size[i];
+        }
+        cout << endl;
+    }
+    MPI_Finalize();
+    return(0);
+}
+""")
+    source_file.close()
+    if subprocess.call(["mpicxx", "-o", exe_name, bgq_shape_source]) != 0:
+        raise Exception("Unable to compile %s executable!" % exe_name)
+
+
+def autobox(tasks_per_node=1):
     """This routine tries its best to figure out dimensions of the partition automatically
-       from the environment. Typically this involves asking the scheduler for the partition
-       geometry.
+       from the environment. Right now on Blue Gene/Q there is no more portable way to do this
+       than to run a job to see how big the partition is, so we compile an executable (if it's not
+       already built) and run it to see what our dimensions are.
 
        This is designed to be run within a run script, after the partition is allocated but
        before the job is launched.
     """
+    prefs_directory = os.path.expanduser("~/.rubik")
+    if not os.path.isdir(prefs_directory):
+        os.makedirs(prefs_directory)
+    bgq_shape = os.path.join(prefs_directory, "bgq-shape")
+    if not os.path.exists(bgq_shape):
+        create_bgq_shape_executable(bgq_shape)
+
     if SLURM_JOBID in os.environ:
-        # If SLURM_JOBID is present, then we can just open a subprocess to ask scontrol about the job.
-        jobid = os.environ[SLURM_JOBID]
-        scontrol_proc = subprocess.Popen(["scontrol", "-o", "show", "job", jobid], stdout=subprocess.PIPE)
-        out_data, in_data = scontrol_proc.communicate()
-
-        # Once we read the job description, dump key-value pairs into a dict so we can get them by name.
-        job_info = dict([kvp.split("=") for kvp in out_data.split(" ")])
-
-        # Now split the dimensions out of the network Geometry
-        dims = [int(dim) for dim in job_info["Geometry"].split("x")]
-
-        # And finally either take the user-specified number of tasks per node, or grab it from SLURM,
-        # and use it as the last dimension.
-        if tasks_per_node:
-            dims.append(tasks_per_node)
-        else:
-            if not SLURM_TASKS_PER_NODE in os.environ:
-                raise Exception("SLURM doesn't tell us the number of tasks per node")
-            else:
-                ntasks = os.environ[SLURM_TASKS_PER_NODE]
-                ntasks = re.match(r'(\d+)', ntasks).group(0)
-                dims.append(int(ntasks))
-
-        return box(dims)
+        run_command = ["srun", bgq_shape]
     else:
-        raise Exception("Unable to automatically determine partition shape.  Did you run Rubik outside of a valid allocation?")
+        raise Exception("Unsupported scheduler environment!")
 
+    def get_dims():
+        srun_proc = subprocess.Popen(run_command, stdout=subprocess.PIPE)
+        out_data, err_data = srun_proc.communicate()
+        if srun_proc.wait() != 0:
+            return None
+        try:
+            return [int(dim) for dim in out_data.split("x")]
+        except ValueError, e:
+            return None
 
+    # Try to run the executable and rebuild and retry once if it fails the first time.
+    # This is to handle things like driver changes, that a rebuild will fix
+    dims = get_dims()
+    if not dims:
+        create_bgq_shape_executable(bgq_shape)
+        dims = get_dims()
+        if not dims:
+            raise Exception("Error invoking bgq-shape: %s" % err_data)
 
+    dims.append(tasks_per_node)
+    return box(dims)
