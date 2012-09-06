@@ -7,8 +7,8 @@ import zorder
 import optparse, itertools, sys
 
 def hyperplane(arr, axis, index):
-    """This generates a slice list that will select one hyperplane out of a numpy ndarray by
-       fixing one axis to a particular coordinate.
+    """This generates a slice list that will select one hyperplane out of a
+       numpy ndarray by fixing one axis to a particular coordinate.
     """
     selector = [slice(None)] * arr.ndim
     selector[axis] = index
@@ -16,16 +16,18 @@ def hyperplane(arr, axis, index):
 
 
 def mod(arr, dim, chunk, nchunks):
-    """Given an array, the dimension (axis) it's being sliced on, the chunk and the number of chunks,
-       returns a slice that divides that dimension into modulo sets.
+    """Given an array, the dimension (axis) it's being sliced on, the chunk
+       and the number of chunks, returns a slice that divides that dimension
+       into modulo sets.
     """
     return slice(chunk, None, nchunks)
 
 
 def div(arr, dim, chunk, nchunks):
-    """Given an array, the dimension (axis) it's being sliced on, the chunk and the number of chunks,
-       returns a slice that divides that dimension into contiguous pieces.  If nchunks doesn't evenly
-       divide arr.shape[dim], the last slice will include the remainder.
+    """Given an array, the dimension (axis) it's being sliced on, the chunk
+       and the number of chunks, returns a slice that divides that dimension
+       into contiguous pieces.  If nchunks doesn't evenly divide
+       arr.shape[dim], the last slice will include the remainder.
     """
     chunksize = arr.shape[dim] / nchunks
     start = chunk * chunksize
@@ -38,10 +40,10 @@ def div(arr, dim, chunk, nchunks):
 
 
 def cut(arr, divisors, slicers = div):
-    """Given an array and a list of divisors, up to one per dimension, cuts the array using the
-       slice generator functions in 'slicers'.  If slicers is a function, use that for all axes.
-       If slicers is an array, use one slicer per axis.  If no slicers are provided, use div for
-       all axes.
+    """Given an array and a list of divisors, up to one per dimension, cuts
+       the array using the slice generator functions in 'slicers'.  If slicers
+       is a function, use that for all axes. If slicers is an array, use one
+       slicer per axis.  If no slicers are provided, use div for all axes.
     """
     # If you just pass a slicer, it uses that for everything
     if hasattr(slicers, '__call__'):
@@ -101,14 +103,14 @@ def shear(arr, axis, direction, slope = 1):
 
 def tilt(arr, axis, direction, slope = 1):
     """Tilt the set of hyperplanes defined by axis perpendicular to the
-       hyperplanes.
-       direction defines the dimension in which the tilt is performed.
-       slope specifies how steep the tilt should be.
+       hyperplanes. direction defines the dimension in which the tilt is
+       performed. slope specifies how steep the tilt should be.
 
        Intuitively, in 3d, tilting a set of 2d planes (say XY) in the direction
-       of its perpendicular (Z) along one of its dimensions (X or Y) is the same
-       as shearing a set of perpendicular [hyper]planes (YZ or XZ respectively)
-       along the perpendicular (Z). In other words,
+       of its perpendicular (Z) along one of its dimensions (X or Y) is the
+       same as shearing a set of perpendicular [hyper]planes (YZ or XZ
+       respectively) along the perpendicular (Z). In other words,
+
        tile(0, 2, slope) = shear(2, 0, slope)
        tile(0, 1, slope) = shear(1, 0, slope)
     """
@@ -132,9 +134,10 @@ def zigzag(arr, axis, direction, depth = 1, stride=1):
        The shift grows linearly up to the depth specified in the parameter
        depth over stride hyperplanes
     """
-    # 'axis' is the subtracted dimension and hence cannot zigzag in that dimension
+    # 'axis' is the subtracted dimension and hence cannot zigzag in that
+    # dimension
     if axis == direction:
-        raise Exception("Error: axis cannot be the same as the zigzag dimension.")
+        raise Exception("Error: axis cannot be the zigzag dimension.")
 
     # compensate for subtracted dimension
     if axis > direction:
@@ -148,11 +151,13 @@ def zigzag(arr, axis, direction, depth = 1, stride=1):
 
 
 class Partition(object):
-    """Tree of views of an initial Box.  Each successive level is a set of views of the top-level box."""
+    """Tree of views of an initial Box.  Each successive level is a set of
+       views of the top-level box."""
 
     class PathElement(object):
-        """This class describes a partition in a hierarchy.  It contains the partition and its index
-           within its parent partition. """
+        """This class describes a partition in a hierarchy.  It contains
+           the partition and its index within its parent partition.
+        """
         def __init__(self, partition, index):
             self.partition = partition
             self.index = index
@@ -167,8 +172,9 @@ class Partition(object):
 
 
     def __init__(self, box, parent, index, flat_index, level):
-        """Constructs a child Partition.  Children have a view of the top-level array rather than a direct
-           copy, and they do not have the Process list that the top-level Partition has.
+        """Constructs a child Partition.  Children have a view of the
+           top-level array rather than a direct copy, and they do not have
+           the Process list that the top-level Partition has.
         """
         self.box        = box
         self.procs      = None
@@ -178,12 +184,12 @@ class Partition(object):
         self.level      = level
         self.children   = np.array([], dtype=object)
 
-    # === Convenience attributes -- to be more numpy-like =======================================
+    # === Convenience attributes -- to be more numpy-like ==============
     shape = property(lambda self: self.box.shape)
     size  = property(lambda self: self.box.size)
     ndim  = property(lambda self: self.box.ndim)
 
-    # === Partitioning routines =================================================================
+    # === Partitioning routines ========================================
     def div(self, divisors):
         self.cut(divisors, div)
 
@@ -200,7 +206,8 @@ class Partition(object):
         """Cuts this partition into a set of views, and make children out of them. See cut()."""
         views = cut(self.box, divisors, slicers)   # Get an array of all the subpartitions (views)
 
-        # Create partitions so that they know their index and flat index within the parent's child array.
+        # Create partitions so that they know their index and flat index
+        # within the parent's child array.
         flat_index = 0
         for index in np.ndindex(views.shape):
             views[index] = Partition(views[index], self, index, flat_index, self.level + 1)
@@ -209,10 +216,10 @@ class Partition(object):
         # Finally assign the numpy array to children
         self.children = views
 
-    # === Reordering Routines ===================================================================
+    # === Reordering Routines ==========================================
     def transpose(self, axes):
-        """Transpose this partition by permuting its axes according to the axes array.
-           See numpy.transpose().
+        """Transpose this partition by permuting its axes according to the
+           axes array. See numpy.transpose().
         """
         self.box.flat = self.box.transpose(axes).flat
 
@@ -235,7 +242,7 @@ class Partition(object):
         """Reorder the processes in this box in z order."""
         zorder.zorder(self.box)
 
-    # === Other Operations =====================================================================
+    # === Other Operations =============================================
     def leaves(self):
       """Return all leaves for a partition"""
       if self.children.size:
@@ -246,7 +253,9 @@ class Partition(object):
 	yield self
 
     def map(self, other):
-        """Map the other partition onto this one.  First checks if partition sizes are compatible."""
+        """Map the other partition onto this one.  First checks if partition
+           sizes are compatible.
+        """
         if self.procs:
             self.procs = other.procs
 
@@ -325,8 +334,9 @@ class Partition(object):
              index             The local index of the element within its parent partition
         """
         if not path:
-            # TODO: we probably shouldn't modify the contents if we want the Partition to be
-            # TODO: an abstract container.  Consider wrapping the elements in our own class
+            # TODO: we probably shouldn't modify the contents if we want
+            # TODO: the Partition to be an abstract container.  Consider
+            # wrapping the elements in our own class
             path = []
             self.assign_coordinates()
             path.append(Partition.PathElement(self, (0,)*self.box.ndim))
