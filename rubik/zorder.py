@@ -1,3 +1,7 @@
+"""
+This file provides routines to transform the elements of an ndarray from
+dimension-major order to Z-order.
+"""
 #!/usr/bin/env python2.6
 
 import numpy as np
@@ -5,7 +9,9 @@ import itertools
 import math
 
 def le_power_of_2(num):
-    """Gets a power of two less than or equal to num.  Works for up to 64-bit numbers."""
+    """ Gets a power of two less than or equal to num. Works for up to 64-bit
+    numbers.
+    """
     num |= (num >> 1)
     num |= (num >> 2)
     num |= (num >> 4)
@@ -27,13 +33,16 @@ def h(num, bytes=8):
 
 
 class ZEncoder(object):
-    """Class representing a set of bitmasks for encoding/decoding n-dimensional morton numbers.
-       Parameters:
-          ndim     number of dimensions to encode/decode for.
-          bits     number of bits in the generated codes.
-       Note: Codes are internally generated with as many bits as are necessary, then they are
-       returned as either numpy.uint32 or numpy.uint64, depending on how many bits are needed
-       to represent the codes.
+    """ Class representing a set of bitmasks for encoding/decoding
+    n-dimensional morton numbers.
+
+    Parameters:
+	ndim	number of dimensions to encode/decode for.
+        bits	number of bits in the generated codes.
+
+    Note: Codes are internally generated with as many bits as are necessary,
+    then they are returned as either numpy.uint32 or numpy.uint64, depending on
+    how many bits are needed to represent the codes.
     """
     filters = {}
 
@@ -53,7 +62,9 @@ class ZEncoder(object):
         return ZEncoder(len(shape), bits)
 
     def get_filter(self, ndim, bits):
-        """Get a possibly memoized filter for the dimensions bit length specified"""
+        """ Get a possibly memoized filter for the dimensions bit length
+	specified.
+	"""
         key = (ndim, bits)
         filters = self.__class__.filters
         if not key in filters:
@@ -62,25 +73,30 @@ class ZEncoder(object):
 
     @classmethod
     def create_filter(cls, ndim, bits):
-        """This creates a filter (a set of bitmasks) that can be used to quickly generate
-           n-dimensional Z codes (Morton codes).  The filter is based on the method
-           described here:
-             http://graphics.stanford.edu/~seander/bithacks.html#InterleaveBMN
-           Parameters:
-             ndim   number of dimensions in the z curve
-             bits   bit width of morton codes to be generated.  Each coordinate gets bits/ndim bits.
+	""" This creates a filter (a set of bitmasks) that can be used to
+	quickly generate n-dimensional Z codes (Morton codes). The filter is
+	based on the method described here:
+	http://graphics.stanford.edu/~seander/bithacks.html#InterleaveBMN
+
+        Parameters:
+	    ndim	number of dimensions in the z curve
+            bits	bit width of morton codes to be generated. Each
+			coordinate gets bits/ndim bits.
         """
-        # Construct the initial mask: this selects just the lower (bits/ndim) bits of a number
+	# Construct the initial mask: this selects just the lower (bits/ndim)
+	# bits of a number
         width = bits / ndim
         mask = (1 << width) - 1
 
         # Each bit in a coordinate needs to move (ndim * width) positions.
-        # We'll move them using iterative power-of-2 shifts for O(log(bits)) complexity.
+	# We'll move them using iterative power-of-2 shifts for O(log(bits))
+	# complexity.
         # First get the max shift we need to do:
         max_shift = le_power_of_2(ndim * (width-1))
         filter = [[mask, 0, max_shift]]
 
-        # Now figure out which bits need to be moved by each shift, and build masks.
+	# Now figure out which bits need to be moved by each shift, and build
+	# masks.
         shift = max_shift
         while shift > 0:
             mask = 0
@@ -99,19 +115,19 @@ class ZEncoder(object):
         return filter
 
     def spread(self, x):
-        """Applies filter to spread the bits of x apart by ndim-1 zeros."""
+        """ Applies filter to spread the bits of x apart by ndim-1 zeros. """
         for mask, shift, rshift in self.filter:
             x = (x | (x << shift)) & mask
         return x
 
     def compact(self, x):
-        """Applies filter in reverse to push spread bits back together."""
+        """ Applies filter in reverse to push spread bits back together. """
         for mask, shift, rshift in self.filter[-1::-1]:
             x = (x | (x >> rshift)) & mask
         return x
 
     def encode(self, point):
-        """Takes a point and returns a morton code for that point."""
+        """ Takes a point and returns a morton code for that point. """
         if len(point) != self.ndim:
             raise Exception("Error: Can't encode %d-dimensional point with %d-dimensional ZEncoder." % (len(point), self.ndim))
         code = 0
@@ -123,43 +139,51 @@ class ZEncoder(object):
         return code
 
     def decode(self, value):
-        """Given an ndim-dimensional morton code, returns the corresponding point as a tuple."""
+	""" Given an ndim-dimensional morton code, returns the corresponding
+	point as a tuple.
+	"""
 #        print type(value)
 #        print value
         return tuple([self.compact(value >> i) for i in range(self.ndim)])
 
     def __bytes(self):
-        """Number of bytes needed to represent the masks in this filter."""
+        """ Number of bytes needed to represent the masks in this filter. """
         if self.bits > 32:
             return 8
         else:
             return 4
 
     def __str(self, format):
-        """Prints out each mask in the filter line along with its corresponding left and right shifts.
-           format paramter determines how to format binary numbers.  Options are b or h.
+	""" Prints out each mask in the filter line along with its
+	corresponding left and right shifts. format paramter determines how to
+	format binary numbers. Options are b or h.
         """
         fields = ["%s %2d %2d" % (format(mask, self.__bytes()), shift, rshift) for mask, shift, rshift in self.filter]
         return "\n".join(fields)
 
     def hex_str(self):
-        """formatted string with masks in the filter in hexadecimal, along with their left and right shifts."""
+	""" formatted string with masks in the filter in hexadecimal, along
+	with their left and right shifts.
+	"""
         return self.__str(h)
 
     def bin_str(self):
-        """formatted string with masks in the filter in binary, along with their left and right shifts."""
+	""" formatted string with masks in the filter in binary, along with
+	their left and right shifts.
+	"""
         return self.__str(b)
 
     def __str__(self):
-        """Equivalent to bin_str()"""
+        """ Equivalent to bin_str() """
         return self.bin_str()
 
 
 def zenumerate(shape):
-    """Enumerates points in the shape in Z order.  Currently dumps the morton codes into an array
-       and sorts them, then regenerates points in that order.  This is O(nlogn) time.  We could do better
-       for matrices with more even aspect ratios by enuerating all morton codes from 0 on and converting
-       to points, but that is O(n^2) for irregular shapes.
+    """ Enumerates points in the shape in Z order. Currently dumps the morton
+    codes into an array and sorts them, then regenerates points in that order.
+    This is O(nlogn) time. We could do better for matrices with more even aspect
+    ratios by enuerating all morton codes from 0 on and converting to points,
+    but that is O(n^2) for irregular shapes.
     """
     # Build a buffer of encoded z values and sort them
     zencoder = ZEncoder.for_shape(shape)
@@ -172,7 +196,9 @@ def zenumerate(shape):
 
 
 def zorder(arr):
-    """Transform the elements of an ndarray from dimension-major order to z order.  This modifies the array. """
+    """ Transform the elements of an ndarray from dimension-major order to z
+    order. This modifies the array.
+    """
     buffer = arr.copy()
     i=0
     for index in zenumerate(arr.shape):
@@ -181,7 +207,7 @@ def zorder(arr):
 
 
 def test_ordering(shape):
-    """Construct a Z encoder for the given shape, then  """
+    """ Construct a Z encoder for the given shape, then """
     zencoder = ZEncoder.for_shape(shape)
     print zencoder
     for point in np.ndindex(*shape):

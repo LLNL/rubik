@@ -1,14 +1,17 @@
 """
-This is a basic viewer for Rubik in the form of a Qt Widget.  You can plug this into
-a PySide GUI to view Rubik boxes using various types of renderers.
+This is a basic viewer for Rubik in the form of a Qt Widget.  You can plug this
+into a PySide GUI to view Rubik boxes using various types of renderers.
 """
+
 import sys, math, itertools
+
 from PySide.QtCore import *
 from PySide.QtGui import *
 from PySide.QtOpenGL import *
 from OpenGL.GL import *
 
 from rubik import *
+
 import glwindow
 import numpy as np
 
@@ -20,8 +23,9 @@ black, white, transparent = ((0.0, 0.0, 0.0, 1.0),
                              (1.0, 1.0, 1.0, 0.0))
 clear_color = transparent
 
-# Really basic color list.  Smart coloring could use some work.
-# Note that this color list has no alpha values.  Use add_alpha to add this.
+""" Really basic color list.  Smart coloring could use some work.  Note that
+this color list has no alpha values.  Use add_alpha to add this.
+"""
 class color:
     def __init__(self, name, value):
         self.name = name
@@ -51,11 +55,14 @@ def add_alpha(color, alpha):
     return tuple(with_alpha)
 
 def crop(image):
-    """Crops the transparent background pixels out of a QImage and returns the result."""
+    """ Crops the transparent background pixels out of a QImage and returns the
+    result.
+    """
     min_x, min_y = image.width(), image.height()
     max_x = max_y = 0
     for x, y in np.ndindex(image.width(), image.height()):
-        # Find minimum and maximum values of x and y for which pixels are nontransparent
+	# Find minimum and maximum values of x and y for which pixels are
+	# nontransparent
         if qAlpha(image.pixel(x,y)):
             min_x = min(x, min_x)
             min_y = min(y, min_y)
@@ -68,7 +75,7 @@ all_faces = range(6)
 left, right, down, up, far, near = all_faces
 
 def set_perspective(fovY, aspect, zNear, zFar):
-    """NeHe replacement for gluPerspective"""
+    """ NeHe replacement for gluPerspective. """
     fH = math.tan(fovY / 360.0 * math.pi) * zNear
     fW = fH * aspect
     glFrustum(-fW, fW, -fH, fH, zNear, zFar)
@@ -80,14 +87,15 @@ def set_ortho(maxdim, aspect):
 
 
 def translate(index, dim, amount):
-    """Translate an n-dimensional index in the specified dimension by amount."""
+    """ Translate an n-dimensional index in the specified dimension by amount.
+    """
     l = list(index)
     l[dim] += amount
     return tuple(l)
 
 def pad(index, dims):
-    """Pads an index out to the specified number of dimensions.
-       Index is padded using zeros.
+    """ Pads an index out to the specified number of dimensions. Index is padded
+    using zeros.
     """
     return tuple(list(index) + ([0] * (dims - len(index))))
 
@@ -97,8 +105,8 @@ class Face(object):
         self.color = color
         self.solid = not (color[3] < 1.0)
 
-        # compute margins for connections by trimming ones where a
-        # connection doesn't exist.
+	# compute margins for connections by trimming ones where a connection
+	# doesn't exist.
         margins = [width / 2.0] * 6
         for f in all_faces:
             if not connect[f]: margins[f] -= margin
@@ -176,9 +184,10 @@ class Face(object):
 
 class RubikView(glwindow.GLWindow):
     def __init__(self, partition, face_renderer, parent=None):
-        """Creates a view of the specified partition using the supplied face renderer.
-           face_renderer should be a cell handler suitable for passing to the iterate_cells routine.
-           It is used to create the faces this RubikView will render.
+	""" Creates a view of the specified partition using the supplied face
+	renderer. face_renderer should be a cell handler suitable for passing
+	to the iterate_cells routine. It is used to create the faces this
+	RubikView will render.
         """
         glwindow.GLWindow.__init__(self, parent)
 
@@ -250,45 +259,56 @@ class RubikView(glwindow.GLWindow):
 
 
     def iterate_cells(self, cell_handler, results = None):
-        """Iterates over all cells in the array, and calls the provided cell_handler function for each cell.
-           The function should look something like this:
+	""" Iterates over all cells in the array, and calls the provided
+	cell_handler function for each cell. The function should look something
+	like this:
 
-               def cell_handler(index, level, connections, results):
-                   pass
+	  def cell_handler(index, level, connections, results):
+	      pass
 
-           Parameters of the handler:
-           index         This is the index within the top-level partition of the cell that's being iterated.
-                         Note that this will always be a 3d index, with y and z set to zero if either of those
-                         dimensions is not needed.  You don't need to pad this yourself.
+	  Parameters of the handler:
+	      index	This is the index within the top-level partition of the
+			cell that's being iterated. Note that this will always
+			be a 3d index, with y and z set to zero if either of
+			those dimensions is not needed. You don't need to pad
+			this yourself.
 
-           level         The level within the partition hierarchy that we're calling this handler for.  i.e.
-                         if a cell is contained within 3 nested partitions, handler will be called 3 times
-                         with 0,1, and 2 as values for level.
+	      level	The level within the partition hierarchy that we're
+			calling this handler for. i.e. if a cell is contained
+			within 3 nested partitions, handler will be called 3
+			times with 0,1, and 2 as values for level.
 
-           connections   Connections that this cell has with its neighbors at the specified level.  This array
-                         will have 6 boolean-valued elements, one for each face of the cell being iterated.
-                         You can use the values of the global all_faces (i.e. left, right, down, up, far, near)
-                         to iterate over the connections array.  This could be used, e.g., to tell you whether
-                         you need to draw a face between your cell and a particular neighbor.
+	      connections	Connections that this cell has with its
+			neighbors at the specified level. This array will have
+			6 boolean-valued elements, one for each face of the cell
+			being iterated. You can use the values of the global
+			all_faces (i.e. left, right, down, up, far, near) to
+			iterate over the connections array. This could be used,
+			e.g., to tell you whether you need to draw a face
+			between your cell and a particular neighbor.
 
-           results       This is the results list passed to iterate_cells.  Your handler function can append
-                         to this list as it creates Faces (or anything else)
+	      results	This is the results list passed to iterate_cells. Your
+			handler function can append to this list as it creates
+			Faces (or anything else)
         """
         shape = self.paths.shape
         for index in np.ndindex(shape):
             # Path is our local list in the inverted partition structure.
             path = self.paths[index]
 
-            # This loop iterates over levels of the partition structure and computes connections between cells
+	    # This loop iterates over levels of the partition structure and
+	    # computes connections between cells
             for l in range(len(path)):
                 # List to hold connections in each direction
                 connect = [False] * 6
                 for dim in range(self.paths.ndim):
-                    # Determine whether we're connected to our neighbor in the negative direction along dim
+		    # Determine whether we're connected to our neighbor in the
+		    # negative direction along dim
                     low = translate(index, dim, -1)
                     if low[dim] >= 0 and len(self.paths[low]) > l and self.paths[low][l].partition == path[l].partition:
                         connect[2*dim] = True
-                    # Determine whether we're connected to our neighbor in the positive direction along dim
+		    # Determine whether we're connected to our neighbor in the
+		    # positive direction along dim
                     high = translate(index, dim, 1)
                     if high[dim] <= shape[dim]-1 and len(self.paths[high]) > l and self.paths[high][l].partition == path[l].partition:
                         connect[2*dim+1] = True
@@ -343,7 +363,8 @@ class RubikView(glwindow.GLWindow):
 
     def keyReleaseEvent(self, event):
         super(RubikView, self).keyReleaseEvent(event)
-        # This adds the ability to save an image file if you hit 'p' while the viewer is running.
+	# This adds the ability to save an image file if you hit 'p' while the
+	# viewer is running.
         if event.key() == Qt.Key_P:
             name, selectedFilter = QFileDialog.getSaveFileName(self, "Save Image", "rubik-image.png", filter="*.png")
             if name:
@@ -353,9 +374,10 @@ class RubikView(glwindow.GLWindow):
 
 
 def make_nested_faces(rubikview, index, level, connections, faces):
-    """Hierarchical renderer that shows tree decomposition with transparent boxes.  Deeper partition
-       levels are drawn as progressively smaller boxes within their encosing partitions' boxes,
-       and outer boxes are made transparent so that inner boxes can be seen.
+    """ Hierarchical renderer that shows tree decomposition with transparent
+    boxes. Deeper partition levels are drawn as progressively smaller boxes with
+    in their encosing partitions' boxes, and outer boxes are made transparent so
+    that inner boxes can be seen.
     """
     def get_color(level):
         color = colors[level].value
@@ -364,16 +386,17 @@ def make_nested_faces(rubikview, index, level, connections, faces):
         else:
             return add_alpha(color, 1.0)
 
-    # Create faces only when there is NOT a connection between our cell and the neighbor
-    # Cells at deeper levels have increasingly large margins -- 0.1 units per level
+    # Create faces only when there is NOT a connection between our cell and the
+    # neighbor cells at deeper levels have increasingly large margins -- 0.1
+    # units per level
     for face in all_faces:
         if not connections[face]:
             faces.append(Face(face, index, 1, 0.1*level, connections, get_color(level)))
 
 
 def make_leaf_faces(rubikview, index, level, connections, faces):
-    """Really basic leaf coloring scheme.  Colors each leaf by its position *within* its parent.
-       By default, this leaves no space between the leaves.
+    """ Really basic leaf coloring scheme.  Colors each leaf by its position
+    *within* its parent. By default, this leaves no space between the leaves.
     """
     # Get the path to the cell at index
     path = rubikview.paths[index]
@@ -390,7 +413,8 @@ def make_leaf_faces(rubikview, index, level, connections, faces):
             faces.append(Face(face, index, 1, 0.1, connections, color))
 
 class ColoredFaceRenderer(object):
-    """This renderer will color cells based on the value of the color attribtue on each process."""
+    """ This renderer will color cells based on the value of the color
+    attribtue on each process."""
     def __init__(self, margin = 0.1):
         self.margin = margin
 
@@ -423,12 +447,12 @@ def assign_flat_index_gradient_color(global_index, path, element, index):
 
 
 def view_in_app(partition, renderer):
-    """This is a convenience function for making a viewer app out of a RubikView.
-       This handles the basics of making a Qt application and displaying a main
-       window, so that you can write simple scripts to bring up a RubikView.
+    """This is a convenience function for making a viewer app out of a
+    RubikView. This handles the basics of making a Qt application and displaying
+    a main window, so that you can write simple scripts to bring up a RubikView.
 
-       This simply builds an app, brings it to the front, and returns the result
-       of Qt's exec_() function after it executes the app.
+    This simply builds an app, brings it to the front, and returns the result of
+    Qt's exec_() function after it executes the app.
     """
     app = QApplication(sys.argv)
     mainwindow = QMainWindow()

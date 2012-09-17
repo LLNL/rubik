@@ -1,9 +1,11 @@
 """
-This file defines routines for creating boxes in Rubik.
+This file defines routines for creating boxes automatically in Rubik by
+querying the system for dimensions/shape of the allocated job partition.
 """
 
 from partition import *
 from process import *
+
 import numpy as np
 import subprocess
 import os
@@ -16,8 +18,8 @@ COBALT_PARTNAME	= "COBALT_PARTNAME"
 COBALT_JOBSIZE	= "COBALT_JOBSIZE"
 
 def box(shape):
-    """Constructs the top-level partition, with the original numpy array
-       and a process list running through it.
+    """ Constructs the top-level partition, with the original numpy array and a
+    process list running through it.
     """
     box = np.ndarray(shape, dtype=object)
     index = (0,) * len(box.shape)
@@ -29,9 +31,8 @@ def box(shape):
 
 
 def create_bgq_shape_executable(exe_name):
-    """Creates an executable that grabs the torus dimensions from the BGQ
-       MPIX routines. There's no more portable way to do this on Q at the
-       moment.
+    """ Creates an executable that obtains the torus dimensions from the IBM
+    MPIX routines.
     """
     bgq_shape_source = "%s.C" % exe_name
     source_file = open(bgq_shape_source, "w")
@@ -57,20 +58,17 @@ int main(int argc, char **argv) {
     MPI_Finalize();
     return(0);
 }
-""")
+    """)
     source_file.close()
     if subprocess.call(["mpicxx", "-o", exe_name, bgq_shape_source]) != 0:
         raise Exception("Unable to compile %s executable!" % exe_name)
 
 
 def autobox(tasks_per_node=1):
-    """This routine tries its best to figure out dimensions of the partition
-       automatically from the environment. Right now on Blue Gene/Q there is
-       no more portable way to do this than to run a job to see how big the
-       partition is, so we compile an executable (if it's not already built)
-       and run it to see what our dimensions are. This is designed to be run
-       within a run script, after the partition is allocated but before the
-       job is launched.
+    """ This routine tries its obtain the dimensions of the partition
+    automatically. On Blue Gene/Q, we compile an executable (if it's not already
+    built) and run it to query the system. This is designed to be run within a
+    run script, after the partition is allocated but before the job is launched.
     """
     prefs_directory = os.path.expanduser(".")
     if not os.path.isdir(prefs_directory):
@@ -95,6 +93,7 @@ def autobox(tasks_per_node=1):
         raise Exception("Unsupported scheduler environment!")
 
     def get_dims():
+    """ Runs the job and communicates the output back to Rubik. """
         srun_proc = subprocess.Popen(run_command, stdout=subprocess.PIPE)
         out_data, err_data = srun_proc.communicate()
         if srun_proc.wait() != 0:
