@@ -18,17 +18,17 @@ def hyperplane(arr, axis, index):
 
 def mod(arr, dim, chunk, nchunks):
     """ Given an array, the dimension (axis) it's being sliced on, the chunk
-    and the number of chunks, returns a slice that divides that dimension into
-    modulo sets.
+    and the number of chunks, returns a slice that divides that dimension
+    into modulo sets.
     """
     return slice(chunk, None, nchunks)
 
 
 def div(arr, dim, chunk, nchunks):
     """ Given an array, the dimension (axis) it's being sliced on, the chunk
-    and the number of chunks, returns a slice that divides that dimension into
-    contiguous pieces. If nchunks doesn't evenly divide arr.shape[dim], the last
-    slice will include the remainder.
+    and the number of chunks, returns a slice that divides that dimension
+    into contiguous pieces. If nchunks doesn't evenly divide arr.shape[dim],
+    the last slice will include the remainder.
     """
     chunksize = arr.shape[dim] / nchunks
     start = chunk * chunksize
@@ -42,9 +42,9 @@ def div(arr, dim, chunk, nchunks):
 
 def cut(arr, divisors, slicers = div):
     """ Given an array and a list of divisors, up to one per dimension, cuts
-    the array using the slice generator functions in 'slicers'. If slicers is a
-    function, use that for all axes. If slicers is an array, use one slicer per
-    axis. If no slicers are provided, use div for all axes.
+    the array using the slice generator functions in 'slicers'. If slicers
+    is a function, use that for all axes. If slicers is an array, use one
+    slicer per axis. If no slicers are provided, use div for all axes.
     """
     # If you just pass a slicer, it uses that for everything
     if hasattr(slicers, '__call__'):
@@ -67,8 +67,8 @@ def shear(arr, axis, direction, slope = 1):
     direction determines the dimension along which we shear.
     slope specifies how steep the shear should be.
 
-    Here are some examples in 2d. In 2d, each 'hyperplane' is a line, but the
-    routine is general for the nd case.
+    Here are some examples in 2d. In 2d, each 'hyperplane' is a line, but
+    the routine is general for the nd case.
 
                                                         0
                                                         ^
@@ -104,13 +104,13 @@ def shear(arr, axis, direction, slope = 1):
 
 def tilt(arr, axis, direction, slope = 1):
     """ Tilt the set of hyperplanes defined by axis perpendicular to the
-    hyperplanes. direction defines the dimension in which the tilt is performed.
-    slope specifies how steep the tilt should be.
+    hyperplanes. direction defines the dimension in which the tilt is
+    performed. slope specifies how steep the tilt should be.
 
-    Intuitively, in 3d, tilting a set of 2d planes (say XY) in the direction of
-    its perpendicular (Z) along one of its dimensions (X or Y) is the same as
-    shearing a set of perpendicular [hyper]planes (YZ or XZ respectively) along
-    the perpendicular (Z). In other words,
+    Intuitively, in 3d, tilting a set of 2d planes (say XY) in the
+    direction of its perpendicular (Z) along one of its dimensions (X or Y)
+    is the same as shearing a set of perpendicular [hyper]planes (YZ or XZ
+    respectively) along the perpendicular (Z). In other words,
 
     tile(0, 2, slope) = shear(2, 0, slope)
     tile(0, 1, slope) = shear(1, 0, slope)
@@ -130,10 +130,10 @@ def tilt(arr, axis, direction, slope = 1):
 
 def zigzag(arr, axis, direction, depth = 1, stride=1):
     """ Zigzag shifts hyperplanes against each other in alternating directions
-    arr, axis, and direction have the same meaning as for shear and tilt. This
-    command causes hyperplanes to be shifted in the indicated direction. The
-    shift grows linearly up to the depth specified in the parameter depth over
-    stride hyperplanes.
+    arr, axis, and direction have the same meaning as for shear and tilt.
+    This command causes hyperplanes to be shifted in the indicated
+    direction. The shift grows linearly up to the depth specified in the
+    parameter depth over stride hyperplanes.
     """
     # 'axis' is the subtracted dimension and hence cannot zigzag in that
     # dimension
@@ -174,9 +174,9 @@ class Partition(object):
 
 
     def __init__(self, box, parent, index, flat_index, level):
-	""" Constructs a child Partition.  Children have a view of the top-level
-	array rather than a direct copy, and they do not have the Process list
-	that the top-level Partition has.
+	""" Constructs a child Partition. Children have a view of the top-level
+	array rather than a direct copy, and they do not have the Process
+	list that the top-level Partition has.
         """
         self.box        = box
         self.procs      = None
@@ -276,9 +276,9 @@ class Partition(object):
 
     def compatible(self, other):
 	""" True if and only if other can be mapped to self.  This implies that
-	at each level of the partition tree, self and other have the same number
-	of children, and that the ith child of a node in self has the same size
-	as the ith child of the corresponding node in other.
+	at each level of the partition tree, self and other have the same
+	number of children, and that the ith child of a node in self has the
+	same size as the ith child of the corresponding node in other.
         """
         return (self.box.size == other.box.size and
                 self.children.size != other.children.size and
@@ -336,18 +336,19 @@ class Partition(object):
 	  def visitor(global_index, path, element, index):
 	      pass
 	  Parameters:
-	      global_index	This is the index in the top-level partition.
+	      global_index	This is the index in the top-level partition
 				i.e. the one you called traverse_cells on.
-	      path		This is a list of PathElements describing the
-				nesting of the cell within partitions. For a
-				PathElement p there are two properties of
-				interest:
-                                p[l].partition  the Partition at nesting level l
-                                p[l].index      the index of p[l] in its parent
-						partition
+	      path		This is a list of PathElements describing
+				the nesting of the cell within partitions.
+				For a PathElement p there are two properties
+				of interest:
+                                p[l].partition  the Partition at nesting 
+						level l
+                                p[l].index      the index of p[l] in its
+						parent partition
 	      element		The element at self.box[global_index]
-	      index		The local index of the element within its parent
-				partition
+	      index		The local index of the element within its
+				parent partition
         """
         if not path:
 	    # TODO: we probably shouldn't modify the contents if we want the
@@ -367,9 +368,9 @@ class Partition(object):
                 visitor(elt.coord, path, elt, index)
 
     def invert(self):
-	""" Returns an array of the same shape as this Partition's box.  Each
-	cell of this array will contain a list of partitions that contain that
-	cell, ordered from top to bottom.
+	""" Returns an array of the same shape as this Partition's box. Each
+	cell of this array will contain a list of partitions that contain
+	that cell, ordered from top to bottom.
         """
         flat_box = self.box.copy()
         def path_assigner(global_index, path, elt, index):

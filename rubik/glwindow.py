@@ -1,9 +1,9 @@
 """
-The routines in this file provide basic support for interactive OpenGL widgets
-in Qt. See GLWindow class docs for details.
+The routines in this file provide basic support for interactive OpenGL
+widgets in Qt. See GLWindow class docs for details.
 
-Original rotation code is borrowed liberally from boxfish by Katherine Isaacs
-and Joshua Levine.
+Original rotation code is borrowed liberally from boxfish by Katherine
+Isaacs and Joshua Levine.
 """
 
 from PySide.QtCore import *
@@ -16,10 +16,11 @@ import numpy as np
 
 class GLWindow(QGLWidget):
     """ This class implements basic support for an interactive OpenGL
-    application. This includes support for rotation and translation using the
-    mouse. Other than handling mouse events for basic interactive features, this
-    is just a regular QGLWidget, so the user still needs to implement
-    resizeGL(), initializeGL(), and paintGL() to get their scene drawn.
+    application. This includes support for rotation and translation using
+    the mouse. Other than handling mouse events for basic interactive
+    features, this is just a regular QGLWidget, so the user still needs to
+    implement resizeGL(), initializeGL(), and paintGL() to get their scene
+    drawn.
     """
 
     def __init__(self, parent=None):
@@ -45,8 +46,8 @@ class GLWindow(QGLWidget):
 
     def map_to_sphere(self, x, y):
 	""" This takes local x and y window coordinates and maps them to an
-	arcball sphere based on the width and height of the window. This is used
-	for quaternion rotation later in mouseMoveEvent().
+	arcball sphere based on the width and height of the window. This is
+	used for quaternion rotation later in mouseMoveEvent().
         """
         width, height = self.width(), self.height()
         v = [0,0,0]

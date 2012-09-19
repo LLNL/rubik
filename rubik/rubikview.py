@@ -1,6 +1,6 @@
 """
-This is a basic viewer for Rubik in the form of a Qt Widget.  You can plug this
-into a PySide GUI to view Rubik boxes using various types of renderers.
+This is a basic viewer for Rubik in the form of a Qt Widget. You can plug
+this into a PySide GUI to view Rubik boxes using various types of renderers.
 """
 
 import sys, math, itertools
@@ -23,10 +23,11 @@ black, white, transparent = ((0.0, 0.0, 0.0, 1.0),
                              (1.0, 1.0, 1.0, 0.0))
 clear_color = transparent
 
-""" Really basic color list.  Smart coloring could use some work.  Note that
-this color list has no alpha values.  Use add_alpha to add this.
-"""
 class color:
+    """ Really basic color list. Smart coloring could use some work. Note that
+    this color list has no alpha values. Use add_alpha to add this.
+    """
+
     def __init__(self, name, value):
         self.name = name
         self.value = value
@@ -185,9 +186,9 @@ class Face(object):
 class RubikView(glwindow.GLWindow):
     def __init__(self, partition, face_renderer, parent=None):
 	""" Creates a view of the specified partition using the supplied face
-	renderer. face_renderer should be a cell handler suitable for passing
-	to the iterate_cells routine. It is used to create the faces this
-	RubikView will render.
+	renderer. face_renderer should be a cell handler suitable for
+	passing to the iterate_cells routine. It is used to create the faces
+	this RubikView will render.
         """
         glwindow.GLWindow.__init__(self, parent)
 
@@ -260,36 +261,38 @@ class RubikView(glwindow.GLWindow):
 
     def iterate_cells(self, cell_handler, results = None):
 	""" Iterates over all cells in the array, and calls the provided
-	cell_handler function for each cell. The function should look something
-	like this:
+	cell_handler function for each cell. The function should look
+	something like this:
 
 	  def cell_handler(index, level, connections, results):
 	      pass
 
 	  Parameters of the handler:
-	      index	This is the index within the top-level partition of the
-			cell that's being iterated. Note that this will always
-			be a 3d index, with y and z set to zero if either of
-			those dimensions is not needed. You don't need to pad
-			this yourself.
+	      index	This is the index within the top-level partition of
+			the cell that's being iterated. Note that this will
+			always be a 3d index, with y and z set to zero if
+			either of those dimensions is not needed. You don't
+			need to pad this yourself.
 
 	      level	The level within the partition hierarchy that we're
-			calling this handler for. i.e. if a cell is contained
-			within 3 nested partitions, handler will be called 3
-			times with 0,1, and 2 as values for level.
+			calling this handler for. i.e. if a cell is
+			contained within 3 nested partitions, handler will
+			be called 3 times with 0,1, and 2 as values for
+			level.
 
 	      connections	Connections that this cell has with its
-			neighbors at the specified level. This array will have
-			6 boolean-valued elements, one for each face of the cell
-			being iterated. You can use the values of the global
-			all_faces (i.e. left, right, down, up, far, near) to
-			iterate over the connections array. This could be used,
-			e.g., to tell you whether you need to draw a face
-			between your cell and a particular neighbor.
+			neighbors at the specified level. This array will
+			have 6 boolean-valued elements, one for each face of
+			the cell being iterated. You can use the values of
+			the global all_faces (i.e. left, right, down, up,
+			far, near) to iterate over the connections array.
+			This could be used, e.g., to tell you whether you
+			need to draw a face between your cell and a
+			particular neighbor.
 
-	      results	This is the results list passed to iterate_cells. Your
-			handler function can append to this list as it creates
-			Faces (or anything else)
+	      results	This is the results list passed to iterate_cells.
+			Your handler function can append to this list as it
+			creates Faces (or anything else)
         """
         shape = self.paths.shape
         for index in np.ndindex(shape):
@@ -415,6 +418,7 @@ def make_leaf_faces(rubikview, index, level, connections, faces):
 class ColoredFaceRenderer(object):
     """ This renderer will color cells based on the value of the color
     attribtue on each process."""
+
     def __init__(self, margin = 0.1):
         self.margin = margin
 

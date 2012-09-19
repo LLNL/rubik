@@ -41,8 +41,8 @@ class ZEncoder(object):
         bits	number of bits in the generated codes.
 
     Note: Codes are internally generated with as many bits as are necessary,
-    then they are returned as either numpy.uint32 or numpy.uint64, depending on
-    how many bits are needed to represent the codes.
+    then they are returned as either numpy.uint32 or numpy.uint64, depending
+    on how many bits are needed to represent the codes.
     """
     filters = {}
 
@@ -180,10 +180,10 @@ class ZEncoder(object):
 
 def zenumerate(shape):
     """ Enumerates points in the shape in Z order. Currently dumps the morton
-    codes into an array and sorts them, then regenerates points in that order.
-    This is O(nlogn) time. We could do better for matrices with more even aspect
-    ratios by enuerating all morton codes from 0 on and converting to points,
-    but that is O(n^2) for irregular shapes.
+    codes into an array and sorts them, then regenerates points in that
+    order. This is O(nlogn) time. We could do better for matrices with more
+    even aspect ratios by enuerating all morton codes from 0 on and
+    converting to points, but that is O(n^2) for irregular shapes.
     """
     # Build a buffer of encoded z values and sort them
     zencoder = ZEncoder.for_shape(shape)

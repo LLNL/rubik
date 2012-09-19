@@ -93,7 +93,7 @@ def autobox(tasks_per_node=1):
         raise Exception("Unsupported scheduler environment!")
 
     def get_dims():
-    """ Runs the job and communicates the output back to Rubik. """
+	""" Runs the job and communicates the output back to Rubik. """
         srun_proc = subprocess.Popen(run_command, stdout=subprocess.PIPE)
         out_data, err_data = srun_proc.communicate()
         if srun_proc.wait() != 0:
