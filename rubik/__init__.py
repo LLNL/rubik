@@ -4,10 +4,14 @@ networks. The input to Rubik is the application topology (including process
 groups) and the processor topology. Various operations are supported on the
 groups as well as the entire processor partition.
 
-Author:        Todd Gamblin tgamblin@llnl.gov
+:Author:
+  `Todd Gamblin <mailto:tgamblin@llnl.gov>`_
 
-Contributors:  Abhinav Bhatele bhatele@llnl.gov
-               Martin Schulz schulzm@llnl.gov
+:Contributors:
+  `Abhinav Bhatele <mailto:bhatele@llnl.gov>`_,
+  `Martin Schulz <mailto:schulzm@llnl.gov>`_
+
+:Version: 1.0
 """
 
 import sys

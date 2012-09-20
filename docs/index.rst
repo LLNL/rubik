@@ -3,16 +3,22 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Rubik's documentation!
-=================================
+Online Documentation for Rubik
+==============================
 
 Contents:
+
+.. image:: images/rubik.png
+   :scale: 40 %
+   :align: right 
+
 
 .. toctree::
    :maxdepth: 2
 
    intro
    tutorial
+   rubik
 
 Indices and tables
 ==================
