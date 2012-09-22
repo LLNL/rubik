@@ -3,6 +3,8 @@ Basic Tutorial
 
 The Basics
 ----------
+Rubik is based on the idea of creating hierarchical groups within
+*n*-dimensional cartesian spaces using orthogonal recursive bisection.
 
 Creating a Mapfile
 ------------------
