@@ -262,7 +262,7 @@ class RubikView(glwindow.GLWindow):
     def iterate_cells(self, cell_handler, results = None):
 	""" Iterates over all cells in the array, and calls the provided
 	cell_handler function for each cell. The function should look
-	something like this:
+	something like this::
 
 	  def cell_handler(index, level, connections, results):
 	      pass

@@ -79,9 +79,12 @@ class ZEncoder(object):
 	http://graphics.stanford.edu/~seander/bithacks.html#InterleaveBMN
 
         Parameters:
-	    ndim	number of dimensions in the z curve
-            bits	bit width of morton codes to be generated. Each
-			coordinate gets bits/ndim bits.
+
+	ndim
+	  number of dimensions in the z curve
+        bits
+	  bit width of morton codes to be generated. Each coordinate gets
+	  bits/ndim bits.
         """
 	# Construct the initial mask: this selects just the lower (bits/ndim)
 	# bits of a number

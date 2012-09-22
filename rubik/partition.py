@@ -68,26 +68,30 @@ def shear(arr, axis, direction, slope = 1):
     slope specifies how steep the shear should be.
 
     Here are some examples in 2d. In 2d, each 'hyperplane' is a line, but
-    the routine is general for the nd case.
+    the routine is general for the nd case::
 
-                                                        0
-                                                        ^
-    Start with a 2d array:                              |  6 7 8
-                                                        |  3 4 5
-                                                        |  0 1 2
-                                                        ----------> 1
+	Start with a 2d array:
 
-    shear(0, 1, 1)
-    Shear hyperplanes defined by axis 0 in 1 direction with a slope of 1:
-                                                           7 8 6
-                                                           5 3 4
-                                                           0 1 2
+	0
+	^
+	|  6 7 8
+        |  3 4 5
+        |  0 1 2
+        ----------> 1
 
-    shear(1, 0, 2)
-    Shear hyperplanes defined by axis 1 in 0 direction with a slope of 2:
-                                                           6 1 5
-                                                           3 7 2
-                                                           0 4 8
+	shear(0, 1, 1) - shear hyperplanes defined by axis 0 in 1 direction
+	with a slope of 1:
+
+        7 8 6
+        5 3 4
+        0 1 2
+
+	shear(1, 0, 2) - shear hyperplanes defined by axis 1 in 0 direction
+	with a slope of 2:
+
+        6 1 5
+        3 7 2
+        0 4 8
     """
     # Can't shear a hyperplane in a perpendicular direction.
     if axis == direction:
@@ -331,24 +335,32 @@ class Partition(object):
 
     def traverse_cells(self, visitor, path=None):
 	""" Call a visitor function on each cell in the Partition. The visitor
-	should this:
+	should look like this::
 
 	  def visitor(global_index, path, element, index):
 	      pass
+
 	  Parameters:
-	      global_index	This is the index in the top-level partition
-				i.e. the one you called traverse_cells on.
-	      path		This is a list of PathElements describing
-				the nesting of the cell within partitions.
-				For a PathElement p there are two properties
-				of interest:
-                                p[l].partition  the Partition at nesting 
-						level l
-                                p[l].index      the index of p[l] in its
-						parent partition
-	      element		The element at self.box[global_index]
-	      index		The local index of the element within its
-				parent partition
+		global_index
+		  This is the index in the top-level partition i.e. the one you
+		  called traverse_cells on.
+
+		path
+		  This is a list of PathElements describing the nesting of the cell
+		  within partitions. For a PathElement p there are two properties of
+		  interest:
+
+		p[l].partition
+		  the Partition at nesting level l
+
+		p[l].index
+		  the index of p[l] in its parent partition
+
+		element
+		  The element at self.box[global_index]
+
+		index
+		  The local index of the element within its parent partition
         """
         if not path:
 	    # TODO: we probably shouldn't modify the contents if we want the
