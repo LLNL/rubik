@@ -1,5 +1,11 @@
-Quick Tutorial
+Basic Tutorial
 ==============
+
+The Basics
+----------
+
+Creating a Mapfile
+------------------
 
 Create a python file::
 
@@ -24,4 +30,9 @@ Call map to embed the application in the processor torus::
 Specify operations (such as tilt, zigzag etc) to change the ordering of MPI ranks to processors::
 
     torus.tile(2, 0, 1)
-    
+
+Visualizing 3D Mappings
+-----------------------
+
+Creating Hierarchical Mappings
+------------------------------

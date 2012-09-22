@@ -97,12 +97,17 @@ html_theme = 'default'
 # further.  For a list of options available for each theme, see the
 # documentation.
 html_theme_options = {
-    "footerbgcolor": "White",
-    "footertextcolor": "Black",
+    "footerbgcolor": "DarkGrey",
+    "footertextcolor": "White",
     "sidebarbgcolor": "LightGrey",
     "sidebartextcolor": "Black",
-    "sidebarlinkcolor": "DarkBlue",
-    "relbarbgcolor": "Black"
+    "sidebarlinkcolor": "RoyalBlue",
+    "relbarbgcolor": "Black",
+    "linkcolor": "RoyalBlue",
+    "visitedlinkcolor": "RoyalBlue",
+    "headtextcolor": "Black",
+    "bodyfont": "Helvetica, 'Lucida Sans Unicode', Tahoma, Arial, sans-serif",
+    "headfont": "Helvetica, 'Lucida Sans Unicode', Tahoma, Arial, sans-serif"
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
