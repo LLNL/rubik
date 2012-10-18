@@ -55,21 +55,33 @@ def add_alpha(color, alpha):
     with_alpha.append(alpha)
     return tuple(with_alpha)
 
-def crop(image):
+def crop(image, crop_criteria):
     """ Crops the transparent background pixels out of a QImage and returns the
     result.
     """
-    min_x, min_y = image.width(), image.height()
-    max_x = max_y = 0
-    for x, y in np.ndindex(image.width(), image.height()):
-	# Find minimum and maximum values of x and y for which pixels are
-	# nontransparent
-        if qAlpha(image.pixel(x,y)):
-            min_x = min(x, min_x)
-            min_y = min(y, min_y)
-            max_x = max(x, max_x)
-            max_y = max(y, max_y)
-    return image.copy(min_x, min_y, (max_x - min_x), (max_y - min_y))
+    def min_x(image):
+        for x in range(image.width()):
+            for y in range(image.height()):
+                if not crop_criteria(image.pixel(x,y)): return x
+
+    def max_x(image):
+        for x in range(image.width()-1, -1, -1):
+            for y in range(image.height()):
+                if not crop_criteria(image.pixel(x,y)): return x+1
+
+    def min_y(image):
+        for y in range(image.height()):
+            for x in range(image.width()):
+                if not crop_criteria(image.pixel(x,y)): return y
+
+    def max_y(image):
+        for y in range(image.height()-1, -1, -1):
+            for x in range(image.width()-1, -1, -1):
+                if not crop_criteria(image.pixel(x,y)): return y+1
+
+    mx, Mx = min_x(image), max_x(image)
+    my, My = min_y(image), max_y(image)
+    return image.copy(mx, my, Mx - mx, My - my)
 
 # Indices for stencil arrays.
 all_faces = range(6)
@@ -364,17 +376,26 @@ class RubikView(glwindow.GLWindow):
         glDepthMask(GL_TRUE)
         glDisable(GL_BLEND)
 
+    def saveImage(self, transparent):
+        name, selectedFilter = QFileDialog.getSaveFileName(self, "Save Image", "rubik-image.png", filter="*.png")
+        if name:
+            image = self.grabFrameBuffer(withAlpha=transparent)
+            if transparent:
+                image = crop(image, lambda p: not qAlpha(p))
+            else:
+                image = crop(image, lambda p: qGray(p) == 255)
+            image.save(name)
+
     def keyReleaseEvent(self, event):
         super(RubikView, self).keyReleaseEvent(event)
 	# This adds the ability to save an image file if you hit 'p' while the
 	# viewer is running.
         if event.key() == Qt.Key_P:
-            name, selectedFilter = QFileDialog.getSaveFileName(self, "Save Image", "rubik-image.png", filter="*.png")
-            if name:
-                image = self.grabFrameBuffer(withAlpha=True)
-                image = crop(image)
-                image.save(name)
-
+	    self.saveImage(False)
+        elif event.key() == Qt.Key_T:
+            self.saveImage(True)
+        elif event.key() == Qt.Key_R:
+            print self.rotation
 
 def make_nested_faces(rubikview, index, level, connections, faces):
     """ Hierarchical renderer that shows tree decomposition with transparent
