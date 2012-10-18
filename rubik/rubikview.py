@@ -378,9 +378,9 @@ class RubikView(glwindow.GLWindow):
 
 def make_nested_faces(rubikview, index, level, connections, faces):
     """ Hierarchical renderer that shows tree decomposition with transparent
-    boxes. Deeper partition levels are drawn as progressively smaller boxes with
-    in their encosing partitions' boxes, and outer boxes are made transparent so
-    that inner boxes can be seen.
+    boxes. Deeper partition levels are drawn as progressively smaller boxes
+    with in their encosing partitions' boxes, and outer boxes are made
+    transparent so that inner boxes can be seen.
     """
     def get_color(level):
         color = colors[level].value
@@ -398,8 +398,9 @@ def make_nested_faces(rubikview, index, level, connections, faces):
 
 
 def make_leaf_faces(rubikview, index, level, connections, faces):
-    """ Really basic leaf coloring scheme.  Colors each leaf by its position
-    *within* its parent. By default, this leaves no space between the leaves.
+    """ Really basic leaf coloring scheme. Colors each leaf by its position
+    *within* its parent. By default, this leaves no space between the
+    leaves.
     """
     # Get the path to the cell at index
     path = rubikview.paths[index]
@@ -450,13 +451,26 @@ def assign_flat_index_gradient_color(global_index, path, element, index):
     element.color = tuple(color)
 
 
-def view_in_app(partition, renderer):
+def view_in_app(partition, renderer, **args):
     """This is a convenience function for making a viewer app out of a
-    RubikView. This handles the basics of making a Qt application and displaying
-    a main window, so that you can write simple scripts to bring up a RubikView.
+    RubikView. This handles the basics of making a Qt application and
+    displaying a main window, so that you can write simple scripts to bring
+    up a RubikView.
 
-    This simply builds an app, brings it to the front, and returns the result of
-    Qt's exec_() function after it executes the app.
+    This simply builds an app, brings it to the front, and returns the
+    result of Qt's exec_() function after it executes the app.
+
+    Optional parameters:
+      rotation  Useful if you want to set a particular starting rotation.
+		For example, if you want to generate a set of images with
+		the same viewpoint.  Supply a tuple as follows:
+
+                  (angle, x, y, z)
+
+                where (x,y,z) define a vector about which the rotation
+		should be performed, and angle is the number of degrees to
+		rotate. See GLWindow.setRotation() for the implentation;
+		this just calls that function.
     """
     app = QApplication(sys.argv)
     mainwindow = QMainWindow()
@@ -464,11 +478,15 @@ def view_in_app(partition, renderer):
     glview = RubikView(partition, renderer, mainwindow)
 
     mainwindow.setCentralWidget(glview)
-    mainwindow.resize(800, 600)
+    mainwindow.resize(1024, 768)
     mainwindow.move(30, 30)
 
     mainwindow.show()
     mainwindow.raise_()
+
+    for key in args:
+	if key == "rotation":
+	    glview.setRotation(*args[key])
 
     # Enter Qt application main loop
     return app.exec_()

@@ -115,13 +115,24 @@ class GLWindow(QGLWidget):
 	# Once rotation has been computed, use OpenGL to add our rotation to
 	# the current modelview matrix.  Then fetch the result and keep it
 	# around.
-        glLoadIdentity()
-        glRotatef(0.5*tb_angle, tb_axis[0] , tb_axis[1], tb_axis[2])
-        glMultMatrixd(self.rotation)
-        self.rotation = glGetDouble(GL_MODELVIEW_MATRIX)
+	self.rotate(0.5*tb_angle, tb_axis[0] , tb_axis[1], tb_axis[2])
 
+    def setRotation(self, angle, x, y, z):
+        """ Set the rotation to the identity position rotated angle degrees
+	about the vector (x, y, z)."""
+        glLoadIdentity()
+        glRotatef(angle, x, y, z)
+        self.rotation = glGetDouble(GL_MODELVIEW_MATRIX)
         self.updateGL()
 
+    def rotate(self, angle, x, y, z):
+	""" Rotate from the current position angle degress about the vector
+	(x, y, z)."""
+	glLoadIdentity()
+        glRotatef(angle, x, y, z)
+        glMultMatrixd(self.rotation)
+        self.rotation = glGetDouble(GL_MODELVIEW_MATRIX)
+        self.updateGL()
 
     def wheelEvent(self, event):
 	""" Does translation in response to wheel events. Within paintGL(), you

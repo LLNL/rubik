@@ -17,4 +17,4 @@ if __name__ == "__main__":
         child.tilt(0, 1, 1)
         child.tilt(0, 2, 1)
 
-    rv.view_in_app(q, rv.ColoredFaceRenderer())
+    rv.view_in_app(q, rv.ColoredFaceRenderer(), rotation=(35, .5, 1, .25))
