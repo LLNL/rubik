@@ -12,4 +12,4 @@ if __name__ == "__main__":
     p.zigzag(2, 1, 1, 1)
     p.zigzag(0, 2, 1, 1)
 
-    rv.view_in_app(p, rv.ColoredFaceRenderer())
+    rv.view_in_app(p)
