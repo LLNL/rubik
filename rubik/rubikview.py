@@ -3,7 +3,8 @@ This is a basic viewer for Rubik in the form of a Qt Widget. You can plug
 this into a PySide GUI to view Rubik boxes using various types of renderers.
 """
 
-import sys, math, itertools
+import sys, math
+from itertools import ifilter, ifilterfalse
 
 from PySide.QtCore import *
 from PySide.QtGui import *
@@ -12,7 +13,7 @@ from OpenGL.GL import *
 
 from rubik import *
 
-import glwindow
+from GLWidget import GLWidget
 from glutils import *
 import numpy as np
 
@@ -196,22 +197,23 @@ class Face(object):
                    (scale * self.normal[2]) + self.center[2])
 
 
-class RubikView(glwindow.GLWindow):
-    def __init__(self, partition, face_renderer, parent=None):
+class RubikView(GLWidget):
+    def __init__(self, face_renderer, parent=None):
         """ Creates a view of the specified partition using the supplied face
         renderer. face_renderer should be a cell handler suitable for
         passing to the iterate_cells routine. It is used to create the faces
         this RubikView will render.
         """
-        glwindow.GLWindow.__init__(self, parent)
+        GLWidget.__init__(self, parent)
 
+        self.partition = None
+        self.face_renderer = None
+
+    def set_partition(self, partition):
         self.partition = partition
-        if partition.box.ndim > 3:
-            raise Exception("Can only view up to 3-dimensional partitions.")
+        if partition.box.ndim != 3:
+            raise Exception("Can only view 3-dimensional partitions.")
         self.paths = partition.invert()
-
-        self.face_renderer = face_renderer
-        self.faces = None
 
         # Compute maxdepth here to save cycles later
         self.maxdepth = max(len(l) for l in self.paths.flat)
@@ -221,6 +223,11 @@ class RubikView(glwindow.GLWindow):
         depth = 3 * shape[2]
         self.translation = np.array(
             [-0.5 * shape[0], -0.5 * shape[1], -depth])
+        self.update()
+
+    def set_face_renderer(self, face_renderer):
+        self.face_renderer = face_renderer
+        self.update()
 
     def initializeGL(self):
         glShadeModel(GL_SMOOTH)
@@ -251,25 +258,6 @@ class RubikView(glwindow.GLWindow):
         glEnable(GL_COLOR_MATERIAL)
         glEnable(GL_LINE_SMOOTH)
         glEnable(GL_POLYGON_SMOOTH)
-
-
-    def resizeGL(self, width, height):
-        if (height == 0):
-            height = 1
-        glViewport(0, 0, width, height)
-
-        glMatrixMode(GL_PROJECTION)
-        glLoadIdentity()
-
-        aspect = float(width)/height
-        if perspective:
-            set_perspective(45.0, aspect, 0.1, 100.0)
-        else:
-            maxdim = max(self.paths.shape)
-            set_ortho(maxdim, aspect)
-
-        glMatrixMode(GL_MODELVIEW)
-        glLoadIdentity()
 
 
     def iterate_cells(self, cell_handler, results = None):
@@ -333,30 +321,39 @@ class RubikView(glwindow.GLWindow):
                 center = pad(index, 3)
                 cell_handler(self, center, l, connect, results)
 
+    def ready(self):
+        return (self.partition != None and
+                self.face_renderer != None)
+
+    def update(self):
+        if not self.ready():
+            return
+
+        self.faces = []
+        self.iterate_cells(self.face_renderer, self.faces)
+
     def paintGL(self):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        if not self.ready():
+            return
 
         # This does translation and rotation for us; see GLWindow for docs
         self.orient_scene()
-
-        if not self.faces:
-            self.faces = []
-            self.iterate_cells(self.face_renderer, self.faces)
 
         # Must sort faces in far-to-near z order for transparency
         mdl = np.array(glGetDoublev(GL_MODELVIEW_MATRIX)).flat
         camera = np.array([-(mdl[0] * mdl[12] + mdl[1] * mdl[13] + mdl[2] * mdl[14]),
                             -(mdl[4] * mdl[12] + mdl[5] * mdl[13] + mdl[6] * mdl[14]),
                             -(mdl[8] * mdl[12] + mdl[9] * mdl[13] + mdl[10] * mdl[14])])
+
         for face in self.faces:
             face.depth = np.linalg.norm(camera - face.center)
         self.faces.sort(lambda f1, f2: cmp(f1.depth, f2.depth))
 
-        # transparency: test for whether alpha is less than 1.0
         def transparent(face):
             return face.color[3] < 1.0
-        transparent_faces = itertools.ifilter(transparent, self.faces)
-        solid_faces = itertools.ifilterfalse(transparent, self.faces)
+        transparent_faces = list(ifilter(transparent, self.faces))
+        solid_faces = list(ifilterfalse(transparent, self.faces))
 
         # render solid faces first
         glDepthMask(GL_TRUE)
@@ -505,28 +502,28 @@ def view_in_app(partition, **args):
 
                 where (x,y,z) define a vector about which the rotation
 		should be performed, and angle is the number of degrees to
-		rotate. See GLWindow.setRotation() for the implentation;
+		rotate. See GLWidget.set_rotation() for the implentation;
 		this just calls that function.
     """
     app = QApplication(sys.argv)
     mainwindow = QMainWindow()
 
-    if "renderer" in args:
-        renderer = args["renderer"]
-    else:
-        renderer = ColoredFaceRenderer()
-
-    glview = RubikView(partition, renderer, mainwindow)
-
-    mainwindow.setCentralWidget(glview)
+    rview = RubikView(mainwindow)
+    mainwindow.setCentralWidget(rview)
     mainwindow.resize(1024, 768)
     mainwindow.move(30, 30)
+
+    if "renderer" in args:
+        rview.set_face_renderer(args["renderer"])
+    else:
+        rview.set_face_renderer(ColoredFaceRenderer())
+    rview.set_partition(partition)
 
     mainwindow.show()
     mainwindow.raise_()
 
     if "rotation" in args:
-        glview.setRotation(*args["rotation"])
+        rview.set_rotation_quaternion(*args["rotation"])
 
     # Enter Qt application main loop
     return app.exec_()
