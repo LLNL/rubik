@@ -13,6 +13,7 @@ from OpenGL.GL import *
 from rubik import *
 
 import glwindow
+from glutils import *
 import numpy as np
 
 # True for perspective projection, false for ortho
@@ -23,7 +24,7 @@ black, white, transparent = ((0.0, 0.0, 0.0, 1.0),
                              (1.0, 1.0, 1.0, 0.0))
 clear_color = transparent
 
-class color:
+class color_val:
     """ Really basic color list. Smart coloring could use some work. Note that
     this color list has no alpha values. Use add_alpha to add this.
     """
@@ -33,22 +34,22 @@ class color:
         self.value = value
 
 colors = [
-    color("maraschino",	(1.000, 0.000, 0.000)),
-    color("fern",	(0.250, 0.500, 0.000)),
-    color("lemon",	(1.000, 1.000, 0.000)),
-    color("agua",	(0.000, 0.500, 1.000)),
-    color("magenta",	(1.000, 0.000, 1.000)),
-    color("tungsten",	(0.200, 0.200, 0.200)),
-    color("turquoise",	(0.000, 1.000, 1.000)),
-    color("tangerine",	(1.000, 0.500, 0.000)),
-    color("magnesium",	(0.700, 0.700, 0.700)),
-    color("blueberry",	(0.000, 0.000, 1.000)),
-    color("sea foam",	(0.000, 1.000, 0.500)),
-    color("mocha",	(0.500, 0.250, 0.000)),
-    color("grape",	(0.500, 0.000, 1.000)),
-    color("spring",	(0.000, 1.000, 0.000)),
-    color("salmon",	(1.000, 0.400, 0.400)),
-    color("asparagus",	(0.500, 0.500, 0.000)),]
+    color_val("maraschino",     (1.000, 0.000, 0.000)),
+    color_val("fern",    (0.250, 0.500, 0.000)),
+    color_val("lemon",    (1.000, 1.000, 0.000)),
+    color_val("agua",    (0.000, 0.500, 1.000)),
+    color_val("magenta",    (1.000, 0.000, 1.000)),
+    color_val("tungsten",    (0.200, 0.200, 0.200)),
+    color_val("turquoise",    (0.000, 1.000, 1.000)),
+    color_val("tangerine",    (1.000, 0.500, 0.000)),
+    color_val("magnesium",    (0.700, 0.700, 0.700)),
+    color_val("blueberry",    (0.000, 0.000, 1.000)),
+    color_val("sea foam",    (0.000, 1.000, 0.500)),
+    color_val("mocha",    (0.500, 0.250, 0.000)),
+    color_val("grape",    (0.500, 0.000, 1.000)),
+    color_val("spring",    (0.000, 1.000, 0.000)),
+    color_val("salmon",    (1.000, 0.400, 0.400)),
+    color_val("asparagus",    (0.500, 0.500, 0.000)),]
 
 def add_alpha(color, alpha):
     with_alpha = list(color)
@@ -118,8 +119,8 @@ class Face(object):
         self.color = color
         self.solid = not (color[3] < 1.0)
 
-	# compute margins for connections by trimming ones where a connection
-	# doesn't exist.
+        # compute margins for connections by trimming ones where a connection
+        # doesn't exist.
         margins = [width / 2.0] * 6
         for f in all_faces:
             if not connect[f]: margins[f] -= margin
@@ -197,10 +198,10 @@ class Face(object):
 
 class RubikView(glwindow.GLWindow):
     def __init__(self, partition, face_renderer, parent=None):
-	""" Creates a view of the specified partition using the supplied face
-	renderer. face_renderer should be a cell handler suitable for
-	passing to the iterate_cells routine. It is used to create the faces
-	this RubikView will render.
+        """ Creates a view of the specified partition using the supplied face
+        renderer. face_renderer should be a cell handler suitable for
+        passing to the iterate_cells routine. It is used to create the faces
+        this RubikView will render.
         """
         glwindow.GLWindow.__init__(self, parent)
 
@@ -359,22 +360,21 @@ class RubikView(glwindow.GLWindow):
 
         # render solid faces first
         glDepthMask(GL_TRUE)
-        glBegin(GL_QUADS)
-        for face in solid_faces:
-            face.draw()
-        glEnd()
+        with glSection(GL_QUADS):
+            for face in solid_faces:
+                face.draw()
 
         # render transparent faces afterwards, without depth writing.
         glEnable(GL_BLEND)
         glDepthMask(GL_FALSE)
         glDisable(GL_CULL_FACE)
-        glBegin(GL_QUADS)
-        for face in transparent_faces:
-            face.draw()
-        glEnd()
+        with glSection(GL_QUADS):
+            for face in transparent_faces:
+                face.draw()
         glEnable(GL_CULL_FACE)
         glDepthMask(GL_TRUE)
         glDisable(GL_BLEND)
+
 
     def saveImage(self, transparent):
         name, selectedFilter = QFileDialog.getSaveFileName(self, "Save Image", "rubik-image.png", filter="*.png")
@@ -456,7 +456,12 @@ class ColoredFaceRenderer(object):
         partition = path[level].partition
         for face in all_faces:
             if not connections[face]:
-                faces.append(Face(face, index, 1, self.margin, connections, process.color))
+                if not hasattr(process, "color"):
+                    # default to gray
+                    color = (0.200, 0.200, 0.200, 1.0)
+                else:
+                    color = process.color
+                faces.append(Face(face, index, 1, self.margin, connections, color))
 
 
 def assign_flat_index_gradient_color(global_index, path, element, index):
@@ -472,7 +477,14 @@ def assign_flat_index_gradient_color(global_index, path, element, index):
     element.color = tuple(color)
 
 
-def view_in_app(partition, renderer, **args):
+def color(partition):
+    """This function traverses a partition with the default coloring
+    function.  This is intended to make Rubik easier to script by
+    allowing people not to have to worry about how things are colored.
+    """
+    partition.traverse_cells(assign_flat_index_gradient_color)
+
+def view_in_app(partition, **args):
     """This is a convenience function for making a viewer app out of a
     RubikView. This handles the basics of making a Qt application and
     displaying a main window, so that you can write simple scripts to bring
@@ -482,6 +494,9 @@ def view_in_app(partition, renderer, **args):
     result of Qt's exec_() function after it executes the app.
 
     Optional parameters:
+      renderer  Optionally pass a custom renderer to draw the faces with.
+                By default this just takes a ColoredFaceRenderer.
+
       rotation  Useful if you want to set a particular starting rotation.
 		For example, if you want to generate a set of images with
 		the same viewpoint.  Supply a tuple as follows:
@@ -496,6 +511,11 @@ def view_in_app(partition, renderer, **args):
     app = QApplication(sys.argv)
     mainwindow = QMainWindow()
 
+    if "renderer" in args:
+        renderer = args["renderer"]
+    else:
+        renderer = ColoredFaceRenderer()
+
     glview = RubikView(partition, renderer, mainwindow)
 
     mainwindow.setCentralWidget(glview)
@@ -505,9 +525,8 @@ def view_in_app(partition, renderer, **args):
     mainwindow.show()
     mainwindow.raise_()
 
-    for key in args:
-	if key == "rotation":
-	    glview.setRotation(*args[key])
+    if "rotation" in args:
+        glview.setRotation(*args["rotation"])
 
     # Enter Qt application main loop
     return app.exec_()

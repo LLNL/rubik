@@ -145,8 +145,6 @@ class ZEncoder(object):
 	""" Given an ndim-dimensional morton code, returns the corresponding
 	point as a tuple.
 	"""
-#        print type(value)
-#        print value
         return tuple([self.compact(value >> i) for i in range(self.ndim)])
 
     def __bytes(self):
