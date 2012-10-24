@@ -484,7 +484,7 @@ def color(partition):
     """
     partition.traverse_cells(assign_flat_index_gradient_color)
 
-def view_in_app(partition, **args):
+def viewbox(partition, **args):
     """This is a convenience function for making a viewer app out of a
     RubikView. This handles the basics of making a Qt application and
     displaying a main window, so that you can write simple scripts to bring

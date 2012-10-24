@@ -47,8 +47,8 @@ Visualizing 3D Mappings
 Rubik has visualization support for three-dimensional Cartesian spaces. A
 particular partition (app or torus) can be visualized using::
 
-    rv.view_in_app(app)
-    rv.view_in_app(torus)
+    rv.viewbox(app)
+    rv.viewbox(torus)
  
 Creating Hierarchical Mappings
 ------------------------------
