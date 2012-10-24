@@ -13,6 +13,7 @@ import re
 
 # Constant for environment variables
 SLURM_JOBID	= "SLURM_JOBID"
+SLURM_NNODES	= "SLURM_NNODES"
 COBALT_JOBID	= "COBALT_JOBID"
 COBALT_PARTNAME	= "COBALT_PARTNAME"
 COBALT_JOBSIZE	= "COBALT_JOBSIZE"
@@ -53,7 +54,7 @@ int main(int argc, char **argv) {
     #if defined(__bgp__)
         DCMF_Hardware_t hw;
         DCMF_Hardware(&hw);
-        cout << hw.xSize << "x" << hw.ySize << "x" << hw.zSize << "x" << hw.tSize;
+        cout << hw.xSize << "x" << hw.ySize << "x" << hw.zSize;
         cout << endl;
     #elif defined(__bgq__)
         MPIX_Hardware_t hw;
@@ -74,12 +75,27 @@ int main(int argc, char **argv) {
         raise Exception("Unable to compile %s executable!" % exe_name)
 
 
-def autobox(tasks_per_node=1):
+def autobox(**kwargs):
     """ This routine tries its obtain the dimensions of the partition
     automatically. On Blue Gene/Q, we compile an executable (if it's not already
     built) and run it to query the system. This is designed to be run within a
     run script, after the partition is allocated but before the job is launched.
     """
+    num_nodes = None
+    if kwargs:
+	# the user must specify the number of tasks_per_node if he provides any
+	# arguments to autobox
+	if 'tasks_per_node' not in kwargs:
+	  raise ValueError("autobox requires tasks_per_node")
+	else:
+	  tasks_per_node = kwargs['tasks_per_node']
+	if 'num_tasks' in kwargs:
+	  num_tasks = kwargs['num_tasks']
+	  num_nodes = str(num_tasks / tasks_per_node)
+    else:
+	# the default is assumed to be SMP mode
+	tasks_per_node = 1
+
     prefs_directory = os.path.expanduser(".")
     if not os.path.isdir(prefs_directory):
         os.makedirs(prefs_directory)
@@ -89,14 +105,19 @@ def autobox(tasks_per_node=1):
 
     if SLURM_JOBID in os.environ:
 	# LLNL Blue Gene/P or Q
-        run_command = ["srun", bg_shape]
+	if num_nodes is None:
+	  num_nodes = os.environ[SLURM_NNODES]
+	run_command = ["srun",
+		       "-N", num_nodes,
+		       bg_shape]
 
     elif COBALT_JOBID in os.environ:
 	# ANL Blue Gene/P or /Q
 	if PLATFORM in os.environ:
 	    platform = os.environ[PLATFORM]
-	    num_nodes = os.environ[COBALT_JOBSIZE]
 	    part_name = os.environ[COBALT_PARTNAME]
+	    if num_nodes is None:
+		num_nodes = os.environ[COBALT_JOBSIZE]
 
 	    if re.match('linux-rhel_6-ppc64', platform):
 		# ANL Blue Gene/Q

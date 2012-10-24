@@ -2,15 +2,19 @@
 
 import rubik
 
-print "Autmatically obtaining Geometry and tasks per node:"
+print "Automatically obtaining geometry:"
 box = rubik.autobox()
 print box.shape
-print box.size
-print box.ndim
+print "#Dimensions: %d #Tasks: %d" % (box.ndim, box.size)
 
 print
-print "Autmatically obtaining Geometry, binding tasks per node to 64:"
-box = rubik.autobox(64)
+print "Automatically obtaining geometry, binding tasks per node to 4:"
+box = rubik.autobox(tasks_per_node=4)
 print box.shape
-print box.size
-print box.ndim
+print "#Dimensions: %d #Tasks: %d" % (box.ndim, box.size)
+
+print
+print "Automatically obtaining geometry, binding tasks per node to 4 and total number of tasks to 256:"
+box = rubik.autobox(tasks_per_node=4, num_tasks=256)
+print box.shape
+print "#Dimensions: %d #Tasks: %d" % (box.ndim, box.size)
