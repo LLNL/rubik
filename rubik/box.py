@@ -13,9 +13,11 @@ import re
 
 # Constant for environment variables
 SLURM_JOBID	= "SLURM_JOBID"
+SLURM_NNODES	= "SLURM_NNODES"
 COBALT_JOBID	= "COBALT_JOBID"
 COBALT_PARTNAME	= "COBALT_PARTNAME"
 COBALT_JOBSIZE	= "COBALT_JOBSIZE"
+PLATFORM	= "PLATFORM"
 
 def box(shape):
     """ Constructs the top-level partition, with the original numpy array and a
@@ -29,24 +31,32 @@ def box(shape):
     p.box.flat = p.procs
     return p
 
-
-def create_bgq_shape_executable(exe_name):
+def create_bg_shape_executable(exe_name):
     """ Creates an executable that obtains the torus dimensions from the IBM
     MPIX routines.
     """
-    bgq_shape_source = "%s.C" % exe_name
-    source_file = open(bgq_shape_source, "w")
-    source_file.write("""
-#include <iostream>
+    bg_shape_source = "%s.C" % exe_name
+    source_file = open(bg_shape_source, "w")
+    source_file.write("""#include <iostream>
 #include <mpi.h>
-#include <mpix.h>
+#if defined(__bgp__)
+  #include <dcmf.h>
+#elif defined(__bgq__)
+  #include <mpix.h>
+#endif
 using namespace std;
 
 int main(int argc, char **argv) {
-    MPI_Init(&argc,&argv);
+    MPI_Init(&argc, &argv);
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     if (rank == 0) {
+    #if defined(__bgp__)
+        DCMF_Hardware_t hw;
+        DCMF_Hardware(&hw);
+        cout << hw.xSize << "x" << hw.ySize << "x" << hw.zSize;
+        cout << endl;
+    #elif defined(__bgq__)
         MPIX_Hardware_t hw;
         MPIX_Hardware(&hw);
         cout << hw.Size[0];
@@ -54,41 +64,81 @@ int main(int argc, char **argv) {
             cout << "x" << hw.Size[i];
         }
         cout << endl;
+    #endif
     }
     MPI_Finalize();
     return(0);
 }
     """)
     source_file.close()
-    if subprocess.call(["mpicxx", "-o", exe_name, bgq_shape_source]) != 0:
+    if subprocess.call(["mpicxx", "-o", exe_name, bg_shape_source]) != 0:
         raise Exception("Unable to compile %s executable!" % exe_name)
 
 
-def autobox(tasks_per_node=1):
+def autobox(**kwargs):
     """ This routine tries its obtain the dimensions of the partition
     automatically. On Blue Gene/Q, we compile an executable (if it's not already
     built) and run it to query the system. This is designed to be run within a
     run script, after the partition is allocated but before the job is launched.
     """
+    num_nodes = None
+    if kwargs:
+	# the user must specify the number of tasks_per_node if he provides any
+	# arguments to autobox
+	if 'tasks_per_node' not in kwargs:
+	  raise ValueError("autobox requires tasks_per_node")
+	else:
+	  tasks_per_node = kwargs['tasks_per_node']
+	if 'num_tasks' in kwargs:
+	  num_tasks = kwargs['num_tasks']
+	  num_nodes = str(num_tasks / tasks_per_node)
+    else:
+	# the default is assumed to be SMP mode
+	tasks_per_node = 1
+
     prefs_directory = os.path.expanduser(".")
     if not os.path.isdir(prefs_directory):
         os.makedirs(prefs_directory)
-    bgq_shape = os.path.join(prefs_directory, "bgq-shape")
-    if not os.path.exists(bgq_shape):
-        create_bgq_shape_executable(bgq_shape)
+    bg_shape = os.path.join(prefs_directory, "bg-shape")
+    if not os.path.exists(bg_shape):
+	create_bg_shape_executable(bg_shape)
 
     if SLURM_JOBID in os.environ:
-        run_command = ["srun", bgq_shape]
+	# LLNL Blue Gene/P or Q
+	if num_nodes is None:
+	  num_nodes = os.environ[SLURM_NNODES]
+	run_command = ["srun",
+		       "-N", num_nodes,
+		       bg_shape]
+
     elif COBALT_JOBID in os.environ:
-	num_nodes = os.environ[COBALT_JOBSIZE]
-	part_name = os.environ[COBALT_PARTNAME]
-	run_command = ["runjob",
-                       "-p", "1",
-                       "-n", num_nodes,
-                       "--block", part_name,
-                       "--verbose=INFO",
-                       "--envs", "BG_SHAREDMEMSIZE=32MB",
-                       ":", bgq_shape]
+	# ANL Blue Gene/P or /Q
+	if PLATFORM in os.environ:
+	    platform = os.environ[PLATFORM]
+	    part_name = os.environ[COBALT_PARTNAME]
+	    if num_nodes is None:
+		num_nodes = os.environ[COBALT_JOBSIZE]
+
+	    if re.match('linux-rhel_6-ppc64', platform):
+		# ANL Blue Gene/Q
+		run_command = ["runjob",
+			       "-p", "1",
+			       "-n", num_nodes,
+			       "--block", part_name,
+			       "--verbose=INFO",
+			       "--envs", "BG_SHAREDMEMSIZE=32MB",
+			       ":", bg_shape]
+	    elif re.match('linux-sles10-ppc64', platform):
+		# ANL Blue Gene/Q
+		run_command = ["cobalt-mpirun",
+			       "-nofree",
+			       "-np", num_nodes,
+			       "-mode", "smp",
+			       bg_shape]
+	    else:
+		raise Exception("Unsupported platform")
+	else:
+	    raise Exception("PLATFORM should be set as an env variable")
     else:
         raise Exception("Unsupported scheduler environment!")
 
@@ -108,10 +158,10 @@ def autobox(tasks_per_node=1):
     # rebuild will fix
     dims = get_dims()
     if not dims:
-        create_bgq_shape_executable(bgq_shape)
+        create_bg_shape_executable(bg_shape)
         dims = get_dims()
         if not dims:
-            raise Exception("Error invoking bgq-shape: %s" % err_data)
+            raise Exception("Error invoking bg-shape: %s" % err_data)
 
     dims.append(tasks_per_node)
     return box(dims)
