@@ -7,7 +7,7 @@ Rubik. For more detailed documentation, refer to the :doc:`userguide`.
 The Basics
 ----------
 Rubik is based on the idea of creating hierarchical groups within
-*n*-dimensional cartesian spaces using orthogonal recursive bisection.
+recursively partitioned *n*-dimensional cartesian spaces.
 
 Creating a Mapfile
 ------------------
@@ -49,7 +49,7 @@ particular partition (app or torus) can be visualized using::
 
     rv.viewbox(app)
     rv.viewbox(torus)
- 
+
 Creating Hierarchical Mappings
 ------------------------------
 Instead of apply operations such as tile to the entire torus partition, they
