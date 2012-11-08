@@ -12,6 +12,7 @@ from PySide.QtOpenGL import *
 from OpenGL.GL import *
 
 from rubik import *
+from rubik.color import *
 
 from GLWidget import GLWidget
 from glutils import *
@@ -25,37 +26,24 @@ black, white, transparent = ((0.0, 0.0, 0.0, 1.0),
                              (1.0, 1.0, 1.0, 0.0))
 clear_color = transparent
 
-class color_val:
-    """ Really basic color list. Smart coloring could use some work. Note that
-    this color list has no alpha values. Use add_alpha to add this.
-    """
+rubik_colors = [
+    Color(0.000, 0.000, 1.000), # blueberry
+    Color(1.000, 0.000, 0.000), # maraschino
+    Color(0.250, 0.500, 0.000), # fern
+    Color(1.000, 1.000, 0.000), # lemon
+    Color(0.000, 0.500, 1.000), # agua
+    Color(1.000, 0.000, 1.000), # magenta
+    Color(0.200, 0.200, 0.200), # tungsten
+    Color(1.000, 0.500, 0.000), # tangerine
+    Color(0.700, 0.700, 0.700), # magnesium
+    Color(0.000, 1.000, 0.500), #"sea foam
+    Color(0.500, 0.250, 0.000), # mocha
+    Color(0.500, 0.000, 1.000), # grape
+    Color(0.000, 1.000, 1.000), # turquoise
+    Color(0.000, 1.000, 0.000), # spring
+    Color(1.000, 0.400, 0.400), # salmon
+    Color(0.500, 0.500, 0.000)] # asparagus
 
-    def __init__(self, name, value):
-        self.name = name
-        self.value = value
-
-colors = [
-    color_val("maraschino",     (1.000, 0.000, 0.000)),
-    color_val("fern",    (0.250, 0.500, 0.000)),
-    color_val("lemon",    (1.000, 1.000, 0.000)),
-    color_val("agua",    (0.000, 0.500, 1.000)),
-    color_val("magenta",    (1.000, 0.000, 1.000)),
-    color_val("tungsten",    (0.200, 0.200, 0.200)),
-    color_val("turquoise",    (0.000, 1.000, 1.000)),
-    color_val("tangerine",    (1.000, 0.500, 0.000)),
-    color_val("magnesium",    (0.700, 0.700, 0.700)),
-    color_val("blueberry",    (0.000, 0.000, 1.000)),
-    color_val("sea foam",    (0.000, 1.000, 0.500)),
-    color_val("mocha",    (0.500, 0.250, 0.000)),
-    color_val("grape",    (0.500, 0.000, 1.000)),
-    color_val("spring",    (0.000, 1.000, 0.000)),
-    color_val("salmon",    (1.000, 0.400, 0.400)),
-    color_val("asparagus",    (0.500, 0.500, 0.000)),]
-
-def add_alpha(color, alpha):
-    with_alpha = list(color)
-    with_alpha.append(alpha)
-    return tuple(with_alpha)
 
 def crop(image, crop_criteria):
     """ Crops the transparent background pixels out of a QImage and returns the
@@ -88,18 +76,6 @@ def crop(image, crop_criteria):
 # Indices for stencil arrays.
 all_faces = range(6)
 left, right, down, up, far, near = all_faces
-
-def set_perspective(fovY, aspect, zNear, zFar):
-    """ NeHe replacement for gluPerspective. """
-    fH = math.tan(fovY / 360.0 * math.pi) * zNear
-    fW = fH * aspect
-    glFrustum(-fW, fW, -fH, fH, zNear, zFar)
-
-def set_ortho(maxdim, aspect):
-    halfheight = maxdim
-    halfwidth = aspect * halfheight
-    glOrtho(-halfwidth, halfwidth, -halfheight, halfheight, -10, 100)
-
 
 def translate(index, dim, amount):
     """ Translate an n-dimensional index in the specified dimension by amount.
@@ -196,6 +172,9 @@ class Face(object):
                    (scale * self.normal[1]) + self.center[1],
                    (scale * self.normal[2]) + self.center[2])
 
+    def transparent(self):
+        return self.color[3] < 1.0
+
 
 class RubikView(GLWidget):
     def __init__(self, face_renderer, parent=None):
@@ -209,6 +188,11 @@ class RubikView(GLWidget):
         self.partition = None
         self.face_renderer = None
 
+        self.solid_faces = []
+        self.solid_face_list = DisplayList(self.draw_solid_faces)
+
+        self.show_axis = False
+
     def set_partition(self, partition):
         self.partition = partition
         if partition.box.ndim != 3:
@@ -220,9 +204,9 @@ class RubikView(GLWidget):
 
         # Initial translation is dependent on the size of the shape we're using
         shape = self.paths.shape
-        depth = 3 * shape[2]
-        self.translation = np.array(
-            [-0.5 * shape[0], -0.5 * shape[1], -depth])
+
+        depth = 3 * max(shape[0:2])
+        self.translation = np.array([0.0, 0.0, -depth])
         self.update()
 
     def set_face_renderer(self, face_renderer):
@@ -260,28 +244,31 @@ class RubikView(GLWidget):
         glEnable(GL_POLYGON_SMOOTH)
 
 
-    def iterate_cells(self, cell_handler, results = None):
+    def iterate_cells(self, renderer, results = None):
 	""" Iterates over all cells in the array, and calls the provided
-	cell_handler function for each cell. The function should look
+	renderer function for each cell. The function should look
 	something like this::
 
-	  def cell_handler(index, level, connections, results):
+	  def renderer(path, level, connections):
 	      pass
 
-	  Parameters of the handler:
-	      index	This is the index within the top-level partition of
-			the cell that's being iterated. Note that this will
-			always be a 3d index, with y and z set to zero if
-			either of those dimensions is not needed. You don't
-			need to pad this yourself.
+        The handler should be a generator function that yields faces to
+        be rendered by this RubikView.
 
-	      level	The level within the partition hierarchy that we're
-			calling this handler for. i.e. if a cell is
-			contained within 3 nested partitions, handler will
-			be called 3 times with 0,1, and 2 as values for
-			level.
+        Parameters of the handler:
+          path          This is a path to the element being rendered.
+                        You can get at the element and its containing
+                        partitions using the path.  See
+                        Partition.PathElement for more on this.
 
-	      connections	Connections that this cell has with its
+          level         This is the level the renderer should generate
+                        faces for.  If you only want to render leaf
+                        partitions, you can just return when level
+                        is not equal to len(path)-1.  If you want to
+                        handle nesting of some sort, you should handle
+                        the other levels as well.
+
+          connections	Connections that this cell has with its
 			neighbors at the specified level. This array will
 			have 6 boolean-valued elements, one for each face of
 			the cell being iterated. You can use the values of
@@ -290,10 +277,6 @@ class RubikView(GLWidget):
 			This could be used, e.g., to tell you whether you
 			need to draw a face between your cell and a
 			particular neighbor.
-
-	      results	This is the results list passed to iterate_cells.
-			Your handler function can append to this list as it
-			creates Faces (or anything else)
         """
         shape = self.paths.shape
         for index in np.ndindex(shape):
@@ -309,28 +292,38 @@ class RubikView(GLWidget):
 		    # Determine whether we're connected to our neighbor in the
 		    # negative direction along dim
                     low = translate(index, dim, -1)
-                    if low[dim] >= 0 and len(self.paths[low]) > l and self.paths[low][l].partition == path[l].partition:
+                    if (low[dim] >= 0 and len(self.paths[low]) > l
+                        and self.paths[low][l].partition == path[l].partition):
                         connect[2*dim] = True
 		    # Determine whether we're connected to our neighbor in the
 		    # positive direction along dim
                     high = translate(index, dim, 1)
-                    if high[dim] <= shape[dim]-1 and len(self.paths[high]) > l and self.paths[high][l].partition == path[l].partition:
+                    if (high[dim] <= shape[dim]-1 and len(self.paths[high]) > l
+                        and self.paths[high][l].partition == path[l].partition):
                         connect[2*dim+1] = True
 
                 # Pass a 3d index to the cell handler and let it do its job
                 center = pad(index, 3)
-                cell_handler(self, center, l, connect, results)
+
+                for face in renderer(path, l, connect):
+                    results.append(face)
 
     def ready(self):
-        return (self.partition != None and
-                self.face_renderer != None)
+        return (self.partition != None and self.face_renderer != None)
 
     def update(self):
         if not self.ready():
             return
 
+        self.solid_face_list.update()
         self.faces = []
         self.iterate_cells(self.face_renderer, self.faces)
+
+    def draw_solid_faces(self):
+        solid_faces = ifilterfalse(Face.transparent, self.faces)
+        with glSection(GL_QUADS):
+            for face in solid_faces:
+                face.draw()
 
     def paintGL(self):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -339,6 +332,7 @@ class RubikView(GLWidget):
 
         # This does translation and rotation for us; see GLWindow for docs
         self.orient_scene()
+        glTranslatef(*((s-1) / -2.0 for s in self.paths.shape))
 
         # Must sort faces in far-to-near z order for transparency
         mdl = np.array(glGetDoublev(GL_MODELVIEW_MATRIX)).flat
@@ -346,35 +340,33 @@ class RubikView(GLWidget):
                             -(mdl[4] * mdl[12] + mdl[5] * mdl[13] + mdl[6] * mdl[14]),
                             -(mdl[8] * mdl[12] + mdl[9] * mdl[13] + mdl[10] * mdl[14])])
 
-        for face in self.faces:
-            face.depth = np.linalg.norm(camera - face.center)
-        self.faces.sort(lambda f1, f2: cmp(f1.depth, f2.depth))
-
-        def transparent(face):
-            return face.color[3] < 1.0
-        transparent_faces = list(ifilter(transparent, self.faces))
-        solid_faces = list(ifilterfalse(transparent, self.faces))
-
         # render solid faces first
         glDepthMask(GL_TRUE)
-        with glSection(GL_QUADS):
-            for face in solid_faces:
-                face.draw()
+        self.solid_face_list()
 
         # render transparent faces afterwards, without depth writing.
-        glEnable(GL_BLEND)
-        glDepthMask(GL_FALSE)
-        glDisable(GL_CULL_FACE)
-        with glSection(GL_QUADS):
-            for face in transparent_faces:
-                face.draw()
-        glEnable(GL_CULL_FACE)
-        glDepthMask(GL_TRUE)
-        glDisable(GL_BLEND)
+        if any(f.transparent for f in self.faces):
+            def depth(face):
+                return np.linalg.norm(camera - face.center)
+            transparent_faces = list(ifilter(Face.transparent, self.faces))
+            transparent_faces.sort(key=depth)
 
+            glEnable(GL_BLEND)
+            glDepthMask(GL_FALSE)
+            glDisable(GL_CULL_FACE)
+            with glSection(GL_QUADS):
+                for face in transparent_faces:
+                    face.draw()
+            glEnable(GL_CULL_FACE)
+            glDepthMask(GL_TRUE)
+            glDisable(GL_BLEND)
+
+        if self.show_axis:
+            self.draw_axis()
 
     def saveImage(self, transparent):
-        name, selectedFilter = QFileDialog.getSaveFileName(self, "Save Image", "rubik-image.png", filter="*.png")
+        name, selectedFilter = QFileDialog.getSaveFileName(
+            self, "Save Image", "rubik-image.png", filter="*.png")
         if name:
             image = self.grabFrameBuffer(withAlpha=transparent)
             if transparent:
@@ -393,95 +385,97 @@ class RubikView(GLWidget):
             self.saveImage(True)
         elif event.key() == Qt.Key_R:
             print self.rotation
+        elif event.key() == Qt.Key_A:
+            self.show_axis = not self.show_axis
+            self.updateGL()
 
-def make_nested_faces(rubikview, index, level, connections, faces):
-    """ Hierarchical renderer that shows tree decomposition with transparent
-    boxes. Deeper partition levels are drawn as progressively smaller boxes
-    with in their encosing partitions' boxes, and outer boxes are made
-    transparent so that inner boxes can be seen.
+
+def colored_face_renderer(**kwargs):
+    """This will render faces with the color assigned to each element
+    in the partition.  If an element has no color attribute, it will
+    be rendered gray.
+
+    Options:
+      transparent      Default False.  If true renders transparent hierarchy
+                       around leaf partitions.
+      alpha            Transparency of non-leaf levels.
+      default_color    Color to use if there is no color attribute.  Default
+                       is gray.
+      margin           Margin of empty space around separate partitions.
     """
-    def get_color(level):
-        color = colors[level].value
-        if level < rubikview.maxdepth-1:
-            return add_alpha(color, 0.25)
-        else:
-            return add_alpha(color, 1.0)
+    transparent = kwargs.get("transparent", False)
+    alpha = kwargs.get("alpha", 0.25)
+    default_color = Color(*kwargs.get("default_color", (0.2, 0.2, 0.2)))
 
-    # Create faces only when there is NOT a connection between our cell and the
-    # neighbor cells at deeper levels have increasingly large margins -- 0.1
-    # units per level
-    for face in all_faces:
-        if not connections[face]:
-            faces.append(Face(face, index, 1, 0.1*level, connections, get_color(level)))
+    default_margin = 0.1
+    if transparent: default_margin = 0.15
+    margin = kwargs.get("margin", default_margin)
 
+    def render(path, level, connections):
+        leaf = (level == len(path) - 1)
 
-def make_leaf_faces(rubikview, index, level, connections, faces):
-    """ Really basic leaf coloring scheme. Colors each leaf by its position
-    *within* its parent. By default, this leaves no space between the
-    leaves.
-    """
-    # Get the path to the cell at index
-    path = rubikview.paths[index]
-    leaf_level = len(path)-1
-
-    # This forces us to only render leaf cells
-    if level != leaf_level: return
-
-    partition = path[level].partition
-    for face in all_faces:
-        if not connections[face]:
-            color_index = partition.flat_index % len(colors)
-            color = add_alpha(colors[color_index].value, 1.0)
-            faces.append(Face(face, index, 1, 0.1, connections, color))
-
-class ColoredFaceRenderer(object):
-    """ This renderer will color cells based on the value of the color
-    attribtue on each process."""
-
-    def __init__(self, margin = 0.1):
-        self.margin = margin
-
-    def __call__(self, rubikview, index, level, connections, faces):
-        # Get the path to the cell at index
-        path = rubikview.paths[index]
-        leaf_level = len(path)-1
-
-        # This forces us to only render leaf cells
-        if level != leaf_level: return
-
-        process = rubikview.partition.box[index]
-        partition = path[level].partition
         for face in all_faces:
-            if not connections[face]:
-                if not hasattr(process, "color"):
-                    # default to gray
-                    color = (0.200, 0.200, 0.200, 1.0)
-                else:
-                    color = process.color
-                faces.append(Face(face, index, 1, self.margin, connections, color))
+            # don't draw internal faces.
+            if connections[face]: continue
+
+            color = getattr(path[level].element, "color", default_color)
+            my_margin = margin
+            if transparent:
+                my_margin *= level
+                if not leaf:
+                    color = default_color.with_alpha(alpha)
+            elif not leaf:
+                return
+
+            index = path[0].index
+            yield Face(face, index, 1, my_margin, connections, color)
+
+    return render
 
 
-def assign_flat_index_gradient_color(global_index, path, element, index):
-    base_color    = colors[path[-1].flat_index % len(colors)].value
-    base_color    = add_alpha(base_color, 1.0)
+def level_gradient_colorer(level=-1):
+    """This returns a colorer that assigns unique colors to each partition
+    at <level> in the encountered path.  The default is to assign colors by
+    leaf partitions, which is equivalent to supplying -1. If you only want
+    to color by the root partition, supply level 0.
 
-    partition     = path[-1].partition
-    flat_index    = np.ravel_multi_index(index, partition.box.shape)
-    percent_white = 1 - (flat_index / float(partition.box.size))
+    The level refers to the position in the path. Within colored partitions,
+    elements are colored from light to dark by their flat index within the
+    partition."""
+    part_colors = ColorMapper(rubik_colors)
 
-    grey_part     = np.array((percent_white, percent_white, percent_white, 1.0))
-    color         = (base_color + 2*grey_part) / 3.0
-    element.color = tuple(color)
+    def getcolor(path):
+        partition  = path[level].partition
+        shade = 1 - (path[level].flat_index / float(partition.size))
+        return part_colors[partition].mix(Color(shade, shade, shade), .66)
+
+    return getcolor
 
 
-def color(partition):
+def color(partition, **kwargs):
     """This function traverses a partition with the default coloring
     function.  This is intended to make Rubik easier to script by
     allowing people not to have to worry about how things are colored.
-    """
-    partition.traverse_cells(assign_flat_index_gradient_color)
 
-def viewbox(partition, **args):
+    Optional parameters:
+      colorer  Optionally pass a colorer to this routine.  The colorer
+               should be some function that takes a path and returns
+               a color.
+
+    By default, this uses a level_gradient_colorer.  If you do not
+    supply a custom colorer, you can pass level_gradient_colorer's
+    keyword args directly to the color function, e.g.::
+
+      color(app, level=-2)
+    """
+    colorer = kwargs.get("colorer", level_gradient_colorer(**kwargs))
+
+    def assign_color(path):
+        path[0].element.color = colorer(path)
+    partition.traverse_cells(assign_color)
+
+
+def viewbox(*partitions, **kwargs):
     """This is a convenience function for making a viewer app out of a
     RubikView. This handles the basics of making a Qt application and
     displaying a main window, so that you can write simple scripts to bring
@@ -491,8 +485,15 @@ def viewbox(partition, **args):
     result of Qt's exec_() function after it executes the app.
 
     Optional parameters:
+      If you use the default renderer, you can pass colored_face_renderer's
+      keyword args directly to viewbox.  e.g.::
+
+          viewbox(app, transparent=True)
+
+      See colored_face_renderer for details on allowed arguments.
+
       renderer  Optionally pass a custom renderer to draw the faces with.
-                By default this just takes a ColoredFaceRenderer.
+                By default uses colored_face_renderer.
 
       rotation  Useful if you want to set a particular starting rotation.
 		For example, if you want to generate a set of images with
@@ -508,22 +509,38 @@ def viewbox(partition, **args):
     app = QApplication(sys.argv)
     mainwindow = QMainWindow()
 
-    rview = RubikView(mainwindow)
-    mainwindow.setCentralWidget(rview)
+    frame = QFrame()
+    layout = QGridLayout()
+    frame.setLayout(layout)
+
+    mainwindow.setCentralWidget(frame)
     mainwindow.resize(1024, 768)
     mainwindow.move(30, 30)
 
-    if "renderer" in args:
-        rview.set_face_renderer(args["renderer"])
-    else:
-        rview.set_face_renderer(ColoredFaceRenderer())
-    rview.set_partition(partition)
+    # Find next highest square number and fill within that shape
+    side = math.ceil(math.sqrt(len(partitions)))
+    aspect = (side, side)
+
+    views = []
+    for i, partition in enumerate(partitions):
+        rview = RubikView(mainwindow)
+        if "renderer" in kwargs:
+            rview.set_face_renderer(kwargs["renderer"])
+        else:
+            rview.set_face_renderer(colored_face_renderer(**kwargs))
+
+        rview.set_partition(partition)
+
+        r, c = np.unravel_index(i, aspect)
+        layout.addWidget(rview, r, c)
+        views.append(rview)
 
     mainwindow.show()
     mainwindow.raise_()
 
-    if "rotation" in args:
-        rview.set_rotation_quaternion(*args["rotation"])
+    for rview in views:
+        if "rotation" in kwargs:
+            rview.set_rotation_quaternion(*kwargs["rotation"])
 
     # Enter Qt application main loop
     return app.exec_()

@@ -7,7 +7,7 @@ from rubik import *
 if __name__ == "__main__":
     p = box([8, 8, 8])
     p.tile([1])
-    p.traverse_cells(rv.assign_flat_index_gradient_color)
+    rv.color(p)
 
     q = box([8, 8, 8])
     q.tile([4, 4, 4])

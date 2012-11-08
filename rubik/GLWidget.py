@@ -59,6 +59,12 @@ class GLWidget(QGLWidget):
         self.translation = np.zeros(3)
         self.rotation = np.identity(4)
 
+        # Display list and settings for the axis
+        self.axisLength = 0.3
+        self.axisList = DisplayList(self._draw_axis)
+
+    def get_translation(self):
+        return self._translation
 
     def set_translation(self, t):
         """Ensure that translation is always a numpy array."""
@@ -70,10 +76,10 @@ class GLWidget(QGLWidget):
         if self._translation.shape != (3,):
             raise ValueError("Illegal translation vector: " + str(t))
 
-    def get_translation(self):
-        return self._translation
-
     translation = property(get_translation, set_translation)
+
+    def get_rotation(self):
+        return self._rotation
 
     def set_rotation(self, r):
         """Ensure that rotation is always a valid 4x4 numpy array."""
@@ -85,19 +91,17 @@ class GLWidget(QGLWidget):
         if self._rotation.shape != (4,4):
             raise ValueError("Illegal rotation matrix: " + str(t))
 
-    def get_rotation(self):
-        return self._rotation
-
     rotation = property(get_rotation, set_rotation)
 
     def set_rotation_quaternion(self, angle, x, y, z):
         """ Set the rotation to the identity position rotated angle degrees
 	about the vector (x, y, z)."""
+        glPushMatrix()
         glLoadIdentity()
         glRotatef(angle, x, y, z)
         self.rotation = glGetDouble(GL_MODELVIEW_MATRIX)
+        glPopMatrix()
         self.updateGL()
-
 
     def map_to_sphere(self, x, y):
         """This takes local x and y window coordinates and maps them to an arcball sphere
@@ -273,7 +277,6 @@ class GLWidget(QGLWidget):
         glTranslatef(*self.translation)
         glMultMatrixd(self.rotation)
 
-
     def set_transform(self, rotation, translation):
         need_update = False
 
@@ -286,6 +289,38 @@ class GLWidget(QGLWidget):
 
         if need_update:
             self.updateGL()
+
+    def _draw_axis(self):
+        """This function does the actual drawing of the lines in the axis."""
+        glLineWidth(2.0)
+        with glSection(GL_LINES):
+            glColor4f(1.0, 0.0, 0.0, 1.0)
+            glVertex3f(0, 0, 0)
+            glVertex3f(self.axisLength, 0, 0)
+
+            glColor4f(0.0, 1.0, 0.0, 1.0)
+            glVertex3f(0, 0, 0)
+            glVertex3f(0, self.axisLength, 0)
+
+            glColor4f(0.0, 0.0, 1.0, 1.0)
+            glVertex3f(0, 0, 0)
+            glVertex3f(0, 0, self.axisLength)
+
+    def draw_axis(self):
+        """This function does the actual drawing of the lines in the axis."""
+        glViewport(0,0,80,80)
+
+        glPushMatrix()
+        with attributes(GL_CURRENT_BIT, GL_LINE_BIT):
+            glLoadIdentity()
+            glTranslatef(0,0, -self.axisLength)
+            glMultMatrixd(self.rotation)
+            with disabled(GL_DEPTH_TEST):
+                self.axisList()
+
+        glPopMatrix()
+        glViewport(0, 0, self.width(), self.height())
+
 
 def set_perspective(fovY, aspect, zNear, zFar):
     """NeHe replacement for gluPerspective"""

@@ -12,29 +12,14 @@ class Partition(object):
     views of the top-level box.
     """
 
-    class PathElement(object):
-	""" This class describes a partition in a hierarchy. It contains the
-	partition and its index within its parent partition.
-        """
-        def __init__(self, partition, index):
-            self.partition = partition
-            self.index = index
-
-        def get_flat_index(self):
-            """ Uses the partition and the index to create a multi-index. """
-            if not self.partition.parent:
-                return 0
-            else:
-                return np.ravel_multi_index(self.index, self.partition.parent.children.shape)
-        flat_index = property(get_flat_index)
-
-
     def __init__(self, box, parent, index, flat_index, level):
 	""" Constructs a child Partition. Children have a view of the top-level
 	array rather than a direct copy, and they do not have the Process
 	list that the top-level Partition has.
         """
         self.box        = box
+        self.vtob       = None
+        self.btov       = None
         self.procs      = None
         self.parent     = parent
         self.index      = index
@@ -43,9 +28,28 @@ class Partition(object):
         self.children   = np.array([], dtype=object)
 
     # === Convenience attributes -- to be more numpy-like ==============
-    shape = property(lambda self: self.box.shape)
-    size  = property(lambda self: self.box.size)
-    ndim  = property(lambda self: self.box.ndim)
+    @property
+    def shape(self):
+        return self.box.shape
+
+    @property
+    def size(self):
+        return self.box.size
+
+    @property
+    def ndim(self):
+        return self.box.ndim
+
+    # === Index conversion routines ====================================
+    def parent_to_self(self, index):
+        if not self.btov:
+            self.btov = base_to_view(self.box)
+        return self.btov(index)
+
+    def self_to_parent(self, index):
+        if not self.vtob:
+            self.vtob = view_to_base(self.box)
+        return self.vtob(index)
 
     # === Partitioning routines ========================================
     def div(self, divisors):
@@ -70,7 +74,8 @@ class Partition(object):
         # within the parent's child array.
         flat_index = 0
         for index in np.ndindex(views.shape):
-            views[index] = Partition(views[index], self, index, flat_index, self.level + 1)
+            p = Partition(views[index], self, index, flat_index, self.level+1)
+            views[index] = p
             flat_index += 1
 
         # Finally assign the numpy array to children
@@ -106,6 +111,9 @@ class Partition(object):
         zorder.zorder(self.box)
 
     # === Other Operations =============================================
+    def depth(self):
+        return 1 + max([child.depth() for child in self.children.flat] + [0])
+
     def leaves(self):
       """ Return all leaves for a partition. """
       if self.children.size:
@@ -144,7 +152,7 @@ class Partition(object):
         """ Assigns coordinates to all processes based on their position in the
 	array.
 	"""
-        for index, i in np.ndenumerate(self.box):
+        for index in np.ndindex(self.box.shape):
             self.box[index].coord = index
 
     def write_map_file(self, stream = sys.stdout):
@@ -166,6 +174,23 @@ class Partition(object):
         for child in self.children.flat:
             yield child
 
+    @property
+    def xancestors(self):
+        """Yields this partition's ancestors, starting at the root and ending
+        with this partition.
+        """
+        if self.parent:
+            for a in self.parent.xancestors:
+                yield a
+        yield self
+
+    @property
+    def ancestors(self):
+        """Returns a list of this partition's ancestors, starting at the root
+        and ending with this partition.
+        """
+        return list(self.xancestors)
+
     def plot(self, graph=None):
         import pygraphviz as pgv  # only import this if we call plot function
         if not graph:
@@ -185,51 +210,56 @@ class Partition(object):
             for child in self.children.flat:
                 child.plot(subgraph)
 
-    def traverse_cells(self, visitor, path=None):
+
+    class PathNode(object):
+	"""This contains metadata for a particular data element in a partition.
+        It contains the partition and the element's index within the partition.
+        It also contains methods for getting the flat index of the element
+        within that partition.
+        """
+        def __init__(self, partition, index = None):
+            self.partition = partition
+            self.index = index
+
+        @property
+        def flat_index(self):
+            return np.ravel_multi_index(self.index, self.partition.shape)
+
+        @property
+        def element(self):
+            """Returns the element at this index in the partition."""
+            return self.partition.box[self.index]
+
+
+    def traverse_cells(self, visitor):
 	""" Call a visitor function on each cell in the Partition. The visitor
 	should look like this::
 
-	  def visitor(global_index, path, element, index):
+	  def visitor(path):
 	      pass
 
-	  Parameters:
-		global_index
-		  This is the index in the top-level partition i.e. the one you
-		  called traverse_cells on.
-
-		path
-		  This is a list of PathElements describing the nesting of the cell
-		  within partitions. For a PathElement p there are two properties of
-		  interest:
-
-		p[l].partition
-		  the Partition at nesting level l
-
-		p[l].index
-		  the index of p[l] in its parent partition
-
-		element
-		  The element at self.box[global_index]
-
-		index
-		  The local index of the element within its parent partition
+        The path passed in is a list of PathNodes describing the nesting of
+        the cell within partitions.  From the path, you can get all the
+        containing partitions of the element it points to, the element,
+        and both n-dimensional and flat indices of the element within each
+        partition.  See PathNode for more details.
         """
-        if not path:
-	    # TODO: we probably shouldn't modify the contents if we want the
-	    # Partition to be an abstract container.  Consider wrapping the
-	    # elements in our own class
-            path = []
-            self.assign_coordinates()
-            path.append(Partition.PathElement(self, (0,)*self.box.ndim))
-
         if self.children.size:
             for index, child in np.ndenumerate(self.children):
-                path.append(Partition.PathElement(child, index))
-                child.traverse_cells(visitor, path)
-                path.pop()
+                child.traverse_cells(visitor)
         else:
             for index, elt in np.ndenumerate(self.box):
-                visitor(elt.coord, path, elt, index)
+                # Build a list of PathNodes containing ancestor partitions
+                path = [Partition.PathNode(p) for p in self.ancestors]
+                path[-1].index = index
+                # assign index of elt within each partition to each PathNode
+                i = -2
+                while i >= -len(path):
+                    child = path[i+1]
+                    path[i].index = child.partition.self_to_parent(child.index)
+                    i -= 1
+                # Now visit the element with its path.
+                visitor(path)
 
     def invert(self):
 	""" Returns an array of the same shape as this Partition's box. Each
@@ -237,8 +267,9 @@ class Partition(object):
 	that cell, ordered from top to bottom.
         """
         flat_box = self.box.copy()
-        def path_assigner(global_index, path, elt, index):
-            flat_box[global_index] = path[:]
+        def path_assigner(path):
+            flat_box[path[0].index] = path
 
         self.traverse_cells(path_assigner)
         return flat_box
+

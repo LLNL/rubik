@@ -2,21 +2,20 @@
 
 from rubik import *
 
-if __name__ == "__main__":
-    # application topology
-    app = box([8, 8])
-    app.tile([4, 4])
-    print app.box
-    print ""
+# application topology
+app = box([8, 8])
+app.tile([4, 4])
+print app.box
+print ""
 
-    # processor topology
-    torus = box([4, 4, 4])
-    torus.tile([1, 4, 4])
+# processor topology
+torus = box([4, 4, 4])
+torus.tile([1, 4, 4])
 
-    torus.map(app)
-    print torus.box
-    print ""
+torus.map(app)
+print torus.box
+print ""
 
-    f = open('mapfile', 'w')
-    torus.write_map_file(f)
-    f.close()
+f = open('mapfile', 'w')
+torus.write_map_file(f)
+f.close()

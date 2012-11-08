@@ -24,8 +24,14 @@ def view_to_base(view, index=None):
         print vtob((0,0))
         (1,1)
     """
-    offset = (data(view) - data(view.base)) / view.dtype.itemsize
-    corner = np.unravel_index(offset, view.base.shape)
+    if view.base == None:
+        raise ValueError("View must have a valid base array.")
+
+    offset = data(view) - data(view.base)
+    corner = []
+    for s in view.base.strides:
+        corner.append(offset / s)
+        offset %= s
     scale = [v / b for v, b in zip(view.strides, view.base.strides)]
 
     def vtob(index):
@@ -52,8 +58,14 @@ def base_to_view(view, index=None):
         print btov((1,1))
         (0,0)
     """
-    offset = (data(view) - data(view.base)) / view.dtype.itemsize
-    corner = np.unravel_index(offset, view.base.shape)
+    if view.base == None:
+        raise ValueError("View must have a valid base array.")
+
+    offset = data(view) - data(view.base)
+    corner = []
+    for s in view.base.strides:
+        corner.append(offset / s)
+        offset %= s
     scale = [v / b for v, b in zip(view.strides, view.base.strides)]
 
     def btov(index):
