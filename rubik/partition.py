@@ -382,7 +382,7 @@ class Partition(object):
             for elt in ifilter(copies.__contains__, self.root.elements):
                 clone.elements.append(copies[elt])
 
-            clone.flat = [copies[elt] for elt in self.box.flat]
+            clone.box.flat = [copies[elt] for elt in self.box.flat]
 
         if self.children.size:
             clone.cut(*self.cutargs)

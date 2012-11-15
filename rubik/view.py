@@ -4,24 +4,24 @@
 # Written by Todd Gamblin et al. <tgamblin@llnl.gov>
 # LLNL-CODE-599252
 # All rights reserved.
-# 
+#
 # This file is part of Rubik. For details, see http://scalability.llnl.gov.
 # Please read the LICENSE file for further information.
-# 
+#
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
-# 
+#
 #     * Redistributions of source code must retain the above copyright notice,
 #       this list of conditions and the disclaimer below.
-# 
+#
 #     * Redistributions in binary form must reproduce the above copyright notice,
 #       this list of conditions and the disclaimer (as noted below) in the
 #       documentation and/or other materials provided with the distribution.
-# 
+#
 #     * Neither the name of the LLNS/LLNL nor the names of its contributors may be
 #       used to endorse or promote products derived from this software without
 #       specific prior written permission.
-# 
+#
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 # ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 # WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -119,7 +119,7 @@ def shade_by_index(path, level, color):
     shade = 1 - (path[level].flat_index / float(partition.size))
     return color.mix(Color(shade, shade, shade), .66)
 
-def level_gradient_colorer(level=-1):
+def level_gradient_colorer(level=-1, **kwargs):
     """This returns a colorer that assigns unique colors to each partition
     at <level> in the encountered path.  The default is to assign colors by
     leaf partitions, which is equivalent to supplying -1. If you only want
@@ -128,7 +128,7 @@ def level_gradient_colorer(level=-1):
     The level refers to the position in the path. Within colored partitions,
     elements are colored from light to dark by their flat index within the
     partition."""
-    part_colors = ColorMapper(rubik_colors)
+    part_colors = ColorMapper(rubik_colors, **kwargs)
 
     def getcolor(path):
         partition  = path[level].partition
