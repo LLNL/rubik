@@ -19,7 +19,7 @@ Documentation:
      https://scalability.llnl.gov/performance-analysis-through-visualization/software/rubik/docs
 
 More information on rubik at LLNL:
-     https://scalability.llnl.gov/performance-analysis-through-visualization/software/rubik
+     https://scalability.llnl.gov/performance-analysis-through-visualization/software.php
 
 Running Rubik Scripts:
 To use rubik, either add the <distribution>/rubik directory to your PYTHONPATH,
