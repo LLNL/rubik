@@ -111,9 +111,10 @@ def color(partition, **kwargs):
                should be some function that takes a path and returns
                a color.
 
-    By default, this uses a level_gradient_colorer.  If you do not
-    supply a custom colorer, you can pass level_gradient_colorer's
-    keyword args directly to the color function, e.g.::
+    By default, this uses a colorer built with
+    :meth:`level_gradient_colorer`. If you do not supply a custom
+    colorer, you can pass level_gradient_colorer's keyword args
+    directly to the color function, e.g.::
 
       color(app, level=-2)
     """

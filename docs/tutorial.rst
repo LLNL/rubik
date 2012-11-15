@@ -47,8 +47,25 @@ Visualizing 3D Mappings
 Rubik has visualization support for three-dimensional Cartesian spaces. A
 particular partition (app or torus) can be visualized using::
 
+    import rubik.view as rv
+
+    # Create an application
+    app = box([16, 8, 16])
+    app.tile([1, 8, 16])
+
+    # This will color the application by its partitions.
+    rv.color(app)
+
+    # If you want to *see* the effect of a mapping you need to map after
+    # you color the source partition.
+    torus.map(app)
+
+    # Now view the app and the torus mappings.  You can see the colors
+    # from the application mapped into thte torus.
     rv.viewbox(app)
     rv.viewbox(torus)
+
+See the documentation for :mod:`rubik.view.color` for more information.
 
 Creating Hierarchical Mappings
 ------------------------------

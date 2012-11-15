@@ -17,14 +17,6 @@ Source Code Documentation
     :undoc-members:
     :show-inheritance:
 
-:mod:`glwindow` Module
-----------------------
-
-.. automodule:: rubik.glwindow
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`partition` Module
 -----------------------
 
@@ -41,10 +33,26 @@ Source Code Documentation
     :undoc-members:
     :show-inheritance:
 
-:mod:`rubikview` Module
+:mod:`view` Module
 -----------------------
 
-.. automodule:: rubik.rubikview
+.. automodule:: rubik.view
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`face` Module
+-----------------------
+
+.. automodule:: rubik.face
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`arrayutils` Module
+-----------------------
+
+.. automodule:: rubik.arrayutils
     :members:
     :undoc-members:
     :show-inheritance:
