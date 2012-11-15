@@ -1,0 +1,869 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Source Code Documentation &mdash; Rubik 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Rubik 1.0 documentation" href="index.html" />
+    <link rel="prev" title="User Guide" href="userguide.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="userguide.html" title="User Guide"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Rubik 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="source-code-documentation">
+<h1>Source Code Documentation<a class="headerlink" href="#source-code-documentation" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-rubik.__init__">
+<span id="rubik-package"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">rubik</span></tt> Package<a class="headerlink" href="#module-rubik.__init__" title="Permalink to this headline">¶</a></h2>
+<p>Rubik outputs mapping files for changing task layout on torus and mesh
+networks. The input to Rubik is the application topology (including process
+groups) and the processor topology. Various operations are supported on the
+groups as well as the entire processor partition.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Author:</th><td class="field-body"><a class="reference external" href="mailto:tgamblin&#37;&#52;&#48;llnl&#46;gov">Todd Gamblin</a></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Contributors:</th><td class="field-body"><a class="reference external" href="mailto:bhatele&#37;&#52;&#48;llnl&#46;gov">Abhinav Bhatele</a>,
+<a class="reference external" href="mailto:schulzm&#37;&#52;&#48;llnl&#46;gov">Martin Schulz</a></td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Version:</th><td class="field-body">1.0</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="module-rubik.box">
+<span id="box-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">box</span></tt> Module<a class="headerlink" href="#module-rubik.box" title="Permalink to this headline">¶</a></h2>
+<p>This file defines routines for creating boxes automatically in Rubik by
+querying the system for dimensions/shape of the allocated job partition.</p>
+<dl class="function">
+<dt id="rubik.box.autobox">
+<tt class="descclassname">rubik.box.</tt><tt class="descname">autobox</tt><big>(</big><em>**kwargs</em><big>)</big><a class="headerlink" href="#rubik.box.autobox" title="Permalink to this definition">¶</a></dt>
+<dd><p>This routine tries its obtain the dimensions of the partition
+automatically. On Blue Gene/Q, we compile an executable (if it&#8217;s not already
+built) and run it to query the system. This is designed to be run within a
+run script, after the partition is allocated but before the job is launched.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rubik.box.box">
+<tt class="descclassname">rubik.box.</tt><tt class="descname">box</tt><big>(</big><em>shape</em><big>)</big><a class="headerlink" href="#rubik.box.box" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructs the top-level partition, with the original numpy array and a
+process list running through it.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rubik.box.create_bg_shape_executable">
+<tt class="descclassname">rubik.box.</tt><tt class="descname">create_bg_shape_executable</tt><big>(</big><em>exe_name</em><big>)</big><a class="headerlink" href="#rubik.box.create_bg_shape_executable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates an executable that obtains the torus dimensions from the IBM
+MPIX routines.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-rubik.partition">
+<span id="partition-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">partition</span></tt> Module<a class="headerlink" href="#module-rubik.partition" title="Permalink to this headline">¶</a></h2>
+<p>This file defines the hierarchical Partition class in Rubik.</p>
+<dl class="class">
+<dt id="rubik.partition.FlatIterator">
+<em class="property">class </em><tt class="descclassname">rubik.partition.</tt><tt class="descname">FlatIterator</tt><big>(</big><em>partition</em><big>)</big><a class="headerlink" href="#rubik.partition.FlatIterator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>This class implements the ndarray.flat-like semantics.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="rubik.partition.Meta">
+<em class="property">class </em><tt class="descclassname">rubik.partition.</tt><tt class="descname">Meta</tt><big>(</big><em>value</em>, <em>color=None</em>, <em>coord=None</em><big>)</big><a class="headerlink" href="#rubik.partition.Meta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>Everything in the partition is wrapped in a Meta object that
+stores attributes like color and coords.  This is so that we don&#8217;t
+destructively modify data contained in a partition.</p>
+<dl class="method">
+<dt id="rubik.partition.Meta.copy">
+<tt class="descname">copy</tt><big>(</big><big>)</big><a class="headerlink" href="#rubik.partition.Meta.copy" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="rubik.partition.Partition">
+<em class="property">class </em><tt class="descclassname">rubik.partition.</tt><tt class="descname">Partition</tt><big>(</big><em>box</em>, <em>parent</em>, <em>index</em>, <em>flat_index</em>, <em>level</em><big>)</big><a class="headerlink" href="#rubik.partition.Partition" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>Tree of views of an initial Box. Each successive level is a set of
+views of the top-level box.</p>
+<dl class="class">
+<dt id="rubik.partition.Partition.PathNode">
+<em class="property">class </em><tt class="descname">PathNode</tt><big>(</big><em>partition</em>, <em>index=None</em><big>)</big><a class="headerlink" href="#rubik.partition.Partition.PathNode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>This contains metadata for a particular data element in a partition.
+It contains the partition and the element&#8217;s index within the partition.
+It also contains methods for getting the flat index of the element
+within that partition.</p>
+<dl class="attribute">
+<dt id="rubik.partition.Partition.PathNode.element">
+<tt class="descname">element</tt><a class="headerlink" href="#rubik.partition.Partition.PathNode.element" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the element at this index in the partition.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rubik.partition.Partition.PathNode.flat_index">
+<tt class="descname">flat_index</tt><a class="headerlink" href="#rubik.partition.Partition.PathNode.flat_index" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rubik.partition.Partition.PathNode.meta">
+<tt class="descname">meta</tt><a class="headerlink" href="#rubik.partition.Partition.PathNode.meta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the Meta object at this index in the Partition.
+Rubik uses this to put metadata on items in the Partition.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rubik.partition.Partition.ancestors">
+<tt class="descclassname">Partition.</tt><tt class="descname">ancestors</tt><a class="headerlink" href="#rubik.partition.Partition.ancestors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of this partition&#8217;s ancestors, starting at the root
+and ending with this partition.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rubik.partition.Partition.assign_coordinates">
+<tt class="descclassname">Partition.</tt><tt class="descname">assign_coordinates</tt><big>(</big><big>)</big><a class="headerlink" href="#rubik.partition.Partition.assign_coordinates" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assigns each element its coordinate in the box.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rubik.partition.Partition.compatible">
+<tt class="descclassname">Partition.</tt><tt class="descname">compatible</tt><big>(</big><em>other</em><big>)</big><a class="headerlink" href="#rubik.partition.Partition.compatible" title="Permalink to this definition">¶</a></dt>
+<dd><p>True if and only if other can be mapped to self.  This is true
+if the leaves of self have the same order, number, and size as
+the leaves of self.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rubik.partition.Partition.copy">
+<tt class="descclassname">Partition.</tt><tt class="descname">copy</tt><big>(</big><em>clone=None</em><big>)</big><a class="headerlink" href="#rubik.partition.Partition.copy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a copy of this partition with the same cuts applied to it, and
+with the same elements contained in this one.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rubik.partition.Partition.cut">
+<tt class="descclassname">Partition.</tt><tt class="descname">cut</tt><big>(</big><em>divisors</em>, <em>slicers</em><big>)</big><a class="headerlink" href="#rubik.partition.Partition.cut" title="Permalink to this definition">¶</a></dt>
+<dd><p>Cuts this partition into a set of views, and make children out of
+them. See cut().</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rubik.partition.Partition.depth">
+<tt class="descclassname">Partition.</tt><tt class="descname">depth</tt><big>(</big><big>)</big><a class="headerlink" href="#rubik.partition.Partition.depth" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rubik.partition.Partition.div">
+<tt class="descclassname">Partition.</tt><tt class="descname">div</tt><big>(</big><em>divisors</em><big>)</big><a class="headerlink" href="#rubik.partition.Partition.div" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rubik.partition.Partition.do_cuts">
+<tt class="descclassname">Partition.</tt><tt class="descname">do_cuts</tt><big>(</big><em>cuts</em><big>)</big><a class="headerlink" href="#rubik.partition.Partition.do_cuts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Replays a deque of cuts from get_cuts()</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="rubik.partition.Partition.empty">
+<em class="property">classmethod </em><tt class="descclassname">Partition.</tt><tt class="descname">empty</tt><big>(</big><em>clz</em>, <em>shape</em><big>)</big><a class="headerlink" href="#rubik.partition.Partition.empty" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rubik.partition.Partition.flat">
+<tt class="descclassname">Partition.</tt><tt class="descname">flat</tt><a class="headerlink" href="#rubik.partition.Partition.flat" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="rubik.partition.Partition.fromlist">
+<em class="property">classmethod </em><tt class="descclassname">Partition.</tt><tt class="descname">fromlist</tt><big>(</big><em>clz</em>, <em>shape</em>, <em>elements</em><big>)</big><a class="headerlink" href="#rubik.partition.Partition.fromlist" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rubik.partition.Partition.get_cuts">
+<tt class="descclassname">Partition.</tt><tt class="descname">get_cuts</tt><big>(</big><em>cuts=None</em><big>)</big><a class="headerlink" href="#rubik.partition.Partition.get_cuts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of cuts in this partition in depth-first order.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rubik.partition.Partition.get_elements_in_root_order">
+<tt class="descclassname">Partition.</tt><tt class="descname">get_elements_in_root_order</tt><big>(</big><big>)</big><a class="headerlink" href="#rubik.partition.Partition.get_elements_in_root_order" title="Permalink to this definition">¶</a></dt>
+<dd><p>This gets a list of the elements currently in <em>this</em> partition, but
+they are in the order they appear in the root elements list.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rubik.partition.Partition.invert">
+<tt class="descclassname">Partition.</tt><tt class="descname">invert</tt><big>(</big><big>)</big><a class="headerlink" href="#rubik.partition.Partition.invert" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an array of the same shape as this Partition&#8217;s box. Each
+cell of this array will contain a list of partitions that contain
+that cell, ordered from top to bottom.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rubik.partition.Partition.leaves">
+<tt class="descclassname">Partition.</tt><tt class="descname">leaves</tt><big>(</big><big>)</big><a class="headerlink" href="#rubik.partition.Partition.leaves" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return all leaves for a partition.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rubik.partition.Partition.map">
+<tt class="descclassname">Partition.</tt><tt class="descname">map</tt><big>(</big><em>other</em><big>)</big><a class="headerlink" href="#rubik.partition.Partition.map" title="Permalink to this definition">¶</a></dt>
+<dd><p>Map the other partition onto this one. First checks if partition
+sizes are compatible.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rubik.partition.Partition.mod">
+<tt class="descclassname">Partition.</tt><tt class="descname">mod</tt><big>(</big><em>divisors</em><big>)</big><a class="headerlink" href="#rubik.partition.Partition.mod" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rubik.partition.Partition.ndim">
+<tt class="descclassname">Partition.</tt><tt class="descname">ndim</tt><a class="headerlink" href="#rubik.partition.Partition.ndim" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rubik.partition.Partition.parent_to_self">
+<tt class="descclassname">Partition.</tt><tt class="descname">parent_to_self</tt><big>(</big><em>index</em><big>)</big><a class="headerlink" href="#rubik.partition.Partition.parent_to_self" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rubik.partition.Partition.plot">
+<tt class="descclassname">Partition.</tt><tt class="descname">plot</tt><big>(</big><em>graph=None</em><big>)</big><a class="headerlink" href="#rubik.partition.Partition.plot" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rubik.partition.Partition.root">
+<tt class="descclassname">Partition.</tt><tt class="descname">root</tt><a class="headerlink" href="#rubik.partition.Partition.root" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rubik.partition.Partition.self_to_parent">
+<tt class="descclassname">Partition.</tt><tt class="descname">self_to_parent</tt><big>(</big><em>index</em><big>)</big><a class="headerlink" href="#rubik.partition.Partition.self_to_parent" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rubik.partition.Partition.shape">
+<tt class="descclassname">Partition.</tt><tt class="descname">shape</tt><a class="headerlink" href="#rubik.partition.Partition.shape" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rubik.partition.Partition.shear">
+<tt class="descclassname">Partition.</tt><tt class="descname">shear</tt><big>(</big><em>axis</em>, <em>direction</em>, <em>slope</em><big>)</big><a class="headerlink" href="#rubik.partition.Partition.shear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Shears the hyperplanes in this partition defined by one axis in the
+direction of another. See shear().</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rubik.partition.Partition.size">
+<tt class="descclassname">Partition.</tt><tt class="descname">size</tt><a class="headerlink" href="#rubik.partition.Partition.size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rubik.partition.Partition.tile">
+<tt class="descclassname">Partition.</tt><tt class="descname">tile</tt><big>(</big><em>tiles</em><big>)</big><a class="headerlink" href="#rubik.partition.Partition.tile" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rubik.partition.Partition.tilt">
+<tt class="descclassname">Partition.</tt><tt class="descname">tilt</tt><big>(</big><em>axis</em>, <em>direction</em>, <em>slope</em><big>)</big><a class="headerlink" href="#rubik.partition.Partition.tilt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tilts the hyperplanes in this partition defined by one axis in one
+of the other directions. See tilt().</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rubik.partition.Partition.transpose">
+<tt class="descclassname">Partition.</tt><tt class="descname">transpose</tt><big>(</big><em>axes</em><big>)</big><a class="headerlink" href="#rubik.partition.Partition.transpose" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transpose this partition by permuting its axes according to the axes
+array. See numpy.transpose().</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rubik.partition.Partition.traverse_cells">
+<tt class="descclassname">Partition.</tt><tt class="descname">traverse_cells</tt><big>(</big><em>visitor</em><big>)</big><a class="headerlink" href="#rubik.partition.Partition.traverse_cells" title="Permalink to this definition">¶</a></dt>
+<dd><p>Call a visitor function on each cell in the Partition. The visitor
+should look like this:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">visitor</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+    <span class="k">pass</span>
+</pre></div>
+</div>
+<p>The path passed in is a list of PathNodes describing the nesting of
+the cell within partitions.  From the path, you can get all the
+containing partitions of the element it points to, the element,
+and both n-dimensional and flat indices of the element within each
+partition.  See PathNode for more details.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rubik.partition.Partition.write_map_file">
+<tt class="descclassname">Partition.</tt><tt class="descname">write_map_file</tt><big>(</big><em>stream=&lt;open file '&lt;stdout&gt;'</em>, <em>mode 'w' at 0x10d55f1e0&gt;</em><big>)</big><a class="headerlink" href="#rubik.partition.Partition.write_map_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write a map file to the specified stream. By default this writes to
+sys.stdout.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rubik.partition.Partition.xancestors">
+<tt class="descclassname">Partition.</tt><tt class="descname">xancestors</tt><a class="headerlink" href="#rubik.partition.Partition.xancestors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Yields this partition&#8217;s ancestors, starting at the root and ending
+with this partition.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rubik.partition.Partition.zigzag">
+<tt class="descclassname">Partition.</tt><tt class="descname">zigzag</tt><big>(</big><em>axis</em>, <em>direction</em>, <em>depth</em>, <em>stride</em><big>)</big><a class="headerlink" href="#rubik.partition.Partition.zigzag" title="Permalink to this definition">¶</a></dt>
+<dd><p>Zigzags the hyperplanes in this partition defined by one axis in one
+of the other directions. See zigzag().</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rubik.partition.Partition.zorder">
+<tt class="descclassname">Partition.</tt><tt class="descname">zorder</tt><big>(</big><big>)</big><a class="headerlink" href="#rubik.partition.Partition.zorder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reorder the processes in this box in z order.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-rubik.process">
+<span id="process-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">process</span></tt> Module<a class="headerlink" href="#module-rubik.process" title="Permalink to this headline">¶</a></h2>
+<p>This file defines the Process class, used to represent MPI ranks in Rubik.</p>
+<dl class="class">
+<dt id="rubik.process.Process">
+<em class="property">class </em><tt class="descclassname">rubik.process.</tt><tt class="descname">Process</tt><big>(</big><em>id</em><big>)</big><a class="headerlink" href="#rubik.process.Process" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>The process class represents a single task in a parallel application
+with a unique identifier. Identifiers can be anything.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-rubik.view">
+<span id="view-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">view</span></tt> Module<a class="headerlink" href="#module-rubik.view" title="Permalink to this headline">¶</a></h2>
+<p>This is an interface to RubikView.  RubikView will launch viewers for
+Rubik partitions in a separate process.</p>
+<p>Note that this module takes care NOT to import Qt, and only runs code
+that would import Qt on the remote viewer processes.  Qt won&#8217;t work
+properly if you import it on the main process before spawninig viewers.</p>
+<dl class="function">
+<dt id="rubik.view.color">
+<tt class="descclassname">rubik.view.</tt><tt class="descname">color</tt><big>(</big><em>partition</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#rubik.view.color" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function traverses a partition with the default coloring
+function.  This is intended to make Rubik easier to script by
+allowing people not to have to worry about how things are colored.</p>
+<dl class="docutils">
+<dt>Optional parameters:</dt>
+<dd><dl class="first last docutils">
+<dt>colorer  Optionally pass a colorer to this routine.  The colorer</dt>
+<dd>should be some function that takes a path and returns
+a color.</dd>
+</dl>
+</dd>
+</dl>
+<p>By default, this uses a colorer built with
+<a class="reference internal" href="#rubik.view.level_gradient_colorer" title="rubik.view.level_gradient_colorer"><tt class="xref py py-meth docutils literal"><span class="pre">level_gradient_colorer()</span></tt></a>. If you do not supply a custom
+colorer, you can pass level_gradient_colorer&#8217;s keyword args
+directly to the color function, e.g.:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">color</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">level</span><span class="o">=-</span><span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="rubik.view.colored_face_renderer">
+<tt class="descclassname">rubik.view.</tt><tt class="descname">colored_face_renderer</tt><big>(</big><em>**kwargs</em><big>)</big><a class="headerlink" href="#rubik.view.colored_face_renderer" title="Permalink to this definition">¶</a></dt>
+<dd><p>This will render faces with the color assigned to each element
+in the partition.  If an element has no color attribute, it will
+be rendered gray.</p>
+<dl class="docutils">
+<dt>Options:</dt>
+<dd><dl class="first docutils">
+<dt>transparent      Default False.  If true renders transparent hierarchy</dt>
+<dd>around leaf partitions.</dd>
+</dl>
+<p>alpha            Transparency of non-leaf levels.
+default_color    Color to use if there is no color attribute.  Default</p>
+<blockquote>
+<div>is gray.</div></blockquote>
+<p class="last">margin           Margin of empty space around separate partitions.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="rubik.view.glCheckError">
+<tt class="descclassname">rubik.view.</tt><tt class="descname">glCheckError</tt><big>(</big><big>)</big><a class="headerlink" href="#rubik.view.glCheckError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base GL Error checker compatible with new ctypes errcheck protocol</p>
+<p>This function will raise a GLError with just the calling information
+available at the C-calling level, i.e. the error code, cArguments,
+baseOperation and result.  Higher-level code is responsible for any 
+extra annotations.</p>
+<dl class="docutils">
+<dt>Note:</dt>
+<dd>glCheckError relies on glBegin/glEnd interactions to 
+prevent glGetError being called during a glBegin/glEnd 
+sequence.  If you are calling glBegin/glEnd in C you 
+should call onBegin and onEnd appropriately.</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="rubik.view.level_gradient_colorer">
+<tt class="descclassname">rubik.view.</tt><tt class="descname">level_gradient_colorer</tt><big>(</big><em>level=-1</em><big>)</big><a class="headerlink" href="#rubik.view.level_gradient_colorer" title="Permalink to this definition">¶</a></dt>
+<dd><p>This returns a colorer that assigns unique colors to each partition
+at &lt;level&gt; in the encountered path.  The default is to assign colors by
+leaf partitions, which is equivalent to supplying -1. If you only want
+to color by the root partition, supply level 0.</p>
+<p>The level refers to the position in the path. Within colored partitions,
+elements are colored from light to dark by their flat index within the
+partition.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rubik.view.shade_by_index">
+<tt class="descclassname">rubik.view.</tt><tt class="descname">shade_by_index</tt><big>(</big><em>path</em>, <em>level</em>, <em>color</em><big>)</big><a class="headerlink" href="#rubik.view.shade_by_index" title="Permalink to this definition">¶</a></dt>
+<dd><p>Shades the color depending on its index in the partition at &lt;level&gt;
+in &lt;path&gt;.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rubik.view.viewbox">
+<tt class="descclassname">rubik.view.</tt><tt class="descname">viewbox</tt><big>(</big><em>*partitions</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#rubik.view.viewbox" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-rubik.face">
+<span id="face-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">face</span></tt> Module<a class="headerlink" href="#module-rubik.face" title="Permalink to this headline">¶</a></h2>
+<p>This class represents a face in a RubikView window.</p>
+<dl class="class">
+<dt id="rubik.face.Face">
+<em class="property">class </em><tt class="descclassname">rubik.face.</tt><tt class="descname">Face</tt><big>(</big><em>face</em>, <em>cell_center</em>, <em>width</em>, <em>margin</em>, <em>connect</em>, <em>color=None</em><big>)</big><a class="headerlink" href="#rubik.face.Face" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<dl class="method">
+<dt id="rubik.face.Face.draw">
+<tt class="descname">draw</tt><big>(</big><big>)</big><a class="headerlink" href="#rubik.face.Face.draw" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rubik.face.Face.draw_normal">
+<tt class="descname">draw_normal</tt><big>(</big><big>)</big><a class="headerlink" href="#rubik.face.Face.draw_normal" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rubik.face.Face.transparent">
+<tt class="descname">transparent</tt><big>(</big><big>)</big><a class="headerlink" href="#rubik.face.Face.transparent" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="rubik.face.glCheckError">
+<tt class="descclassname">rubik.face.</tt><tt class="descname">glCheckError</tt><big>(</big><big>)</big><a class="headerlink" href="#rubik.face.glCheckError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base GL Error checker compatible with new ctypes errcheck protocol</p>
+<p>This function will raise a GLError with just the calling information
+available at the C-calling level, i.e. the error code, cArguments,
+baseOperation and result.  Higher-level code is responsible for any 
+extra annotations.</p>
+<dl class="docutils">
+<dt>Note:</dt>
+<dd>glCheckError relies on glBegin/glEnd interactions to 
+prevent glGetError being called during a glBegin/glEnd 
+sequence.  If you are calling glBegin/glEnd in C you 
+should call onBegin and onEnd appropriately.</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="arrayutils-module">
+<h2><tt class="xref py py-mod docutils literal"><span class="pre">arrayutils</span></tt> Module<a class="headerlink" href="#arrayutils-module" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-rubik.arrayutils"></span><p>This file defines functions that operate on numpy arrays.  Most are the
+fundamental rubik transforamtions that permute array elements.</p>
+<dl class="class">
+<dt id="rubik.arrayutils.IndexConverter">
+<em class="property">class </em><tt class="descclassname">rubik.arrayutils.</tt><tt class="descname">IndexConverter</tt><big>(</big><em>view</em><big>)</big><a class="headerlink" href="#rubik.arrayutils.IndexConverter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>Given a numpy view and an index into it, this will convert the index in
+the view to the corresponding index in the base.  Example:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">base</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">([</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">])</span>
+<span class="n">view</span> <span class="o">=</span> <span class="n">base</span><span class="p">[</span><span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">]</span>
+<span class="n">ic</span> <span class="o">=</span> <span class="n">IndexConverter</span><span class="p">(</span><span class="n">view</span><span class="p">)</span>
+
+<span class="k">print</span> <span class="n">ic</span><span class="o">.</span><span class="n">view_to_base</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+<span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="k">print</span> <span class="n">ic</span><span class="o">.</span><span class="n">base_to_view</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span>
+<span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="rubik.arrayutils.IndexConverter.base_to_view">
+<tt class="descname">base_to_view</tt><big>(</big><em>index</em><big>)</big><a class="headerlink" href="#rubik.arrayutils.IndexConverter.base_to_view" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rubik.arrayutils.IndexConverter.view_to_base">
+<tt class="descname">view_to_base</tt><big>(</big><em>index</em><big>)</big><a class="headerlink" href="#rubik.arrayutils.IndexConverter.view_to_base" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="rubik.arrayutils.base_corner">
+<tt class="descclassname">rubik.arrayutils.</tt><tt class="descname">base_corner</tt><big>(</big><em>view</em><big>)</big><a class="headerlink" href="#rubik.arrayutils.base_corner" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finds index of the (0, 0, ...) element of view within its base.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rubik.arrayutils.cut">
+<tt class="descclassname">rubik.arrayutils.</tt><tt class="descname">cut</tt><big>(</big><em>arr</em>, <em>divisors</em>, <em>slicers=&lt;function div at 0x10ebcc2a8&gt;</em><big>)</big><a class="headerlink" href="#rubik.arrayutils.cut" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given an array and a list of divisors, up to one per dimension, cuts
+the array using the slice generator functions in &#8216;slicers&#8217;. If slicers
+is a function, use that for all axes. If slicers is an array, use one
+slicer per axis. If no slicers are provided, use div for all axes.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rubik.arrayutils.data">
+<tt class="descclassname">rubik.arrayutils.</tt><tt class="descname">data</tt><big>(</big><em>arr</em><big>)</big><a class="headerlink" href="#rubik.arrayutils.data" title="Permalink to this definition">¶</a></dt>
+<dd><p>This gets the address of a numpy array&#8217;s data buffer.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rubik.arrayutils.div">
+<tt class="descclassname">rubik.arrayutils.</tt><tt class="descname">div</tt><big>(</big><em>arr</em>, <em>dim</em>, <em>chunk</em>, <em>nchunks</em><big>)</big><a class="headerlink" href="#rubik.arrayutils.div" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given an array, the dimension (axis) it&#8217;s being sliced on, the chunk
+and the number of chunks, returns a slice that divides that dimension
+into contiguous pieces. If nchunks doesn&#8217;t evenly divide arr.shape[dim],
+the last slice will include the remainder.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rubik.arrayutils.hyperplane">
+<tt class="descclassname">rubik.arrayutils.</tt><tt class="descname">hyperplane</tt><big>(</big><em>arr</em>, <em>axis</em>, <em>index</em><big>)</big><a class="headerlink" href="#rubik.arrayutils.hyperplane" title="Permalink to this definition">¶</a></dt>
+<dd><p>This generates a slice list that will select one hyperplane out of a
+numpy ndarray by fixing one axis to a particular coordinate.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rubik.arrayutils.mod">
+<tt class="descclassname">rubik.arrayutils.</tt><tt class="descname">mod</tt><big>(</big><em>arr</em>, <em>dim</em>, <em>chunk</em>, <em>nchunks</em><big>)</big><a class="headerlink" href="#rubik.arrayutils.mod" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given an array, the dimension (axis) it&#8217;s being sliced on, the chunk
+and the number of chunks, returns a slice that divides that dimension
+into modulo sets.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rubik.arrayutils.shear">
+<tt class="descclassname">rubik.arrayutils.</tt><tt class="descname">shear</tt><big>(</big><em>arr</em>, <em>axis</em>, <em>direction</em>, <em>slope=1</em><big>)</big><a class="headerlink" href="#rubik.arrayutils.shear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Shear the set of hyperplanes in arr defined by axis.
+direction determines the dimension along which we shear.
+slope specifies how steep the shear should be.</p>
+<p>Here are some examples in 2d. In 2d, each &#8216;hyperplane&#8217; is a line, but
+the routine is general for the nd case:</p>
+<div class="highlight-python"><pre>Start with a 2d array:
+
+0
+^
+|  6 7 8
+|  3 4 5
+|  0 1 2
+----------&gt; 1
+
+shear(0, 1, 1) - shear hyperplanes defined by axis 0 in 1 direction
+with a slope of 1:
+
+7 8 6
+5 3 4
+0 1 2
+
+shear(1, 0, 2) - shear hyperplanes defined by axis 1 in 0 direction
+with a slope of 2:
+
+6 1 5
+3 7 2
+0 4 8</pre>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="rubik.arrayutils.tilt">
+<tt class="descclassname">rubik.arrayutils.</tt><tt class="descname">tilt</tt><big>(</big><em>arr</em>, <em>axis</em>, <em>direction</em>, <em>slope=1</em><big>)</big><a class="headerlink" href="#rubik.arrayutils.tilt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tilt the set of hyperplanes defined by axis perpendicular to the
+hyperplanes. direction defines the dimension in which the tilt is
+performed. slope specifies how steep the tilt should be.</p>
+<p>Intuitively, in 3d, tilting a set of 2d planes (say XY) in the
+direction of its perpendicular (Z) along one of its dimensions (X or Y)
+is the same as shearing a set of perpendicular [hyper]planes (YZ or XZ
+respectively) along the perpendicular (Z). In other words,</p>
+<p>tile(0, 2, slope) = shear(2, 0, slope)
+tile(0, 1, slope) = shear(1, 0, slope)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rubik.arrayutils.zigzag">
+<tt class="descclassname">rubik.arrayutils.</tt><tt class="descname">zigzag</tt><big>(</big><em>arr</em>, <em>axis</em>, <em>direction</em>, <em>depth=1</em>, <em>stride=1</em><big>)</big><a class="headerlink" href="#rubik.arrayutils.zigzag" title="Permalink to this definition">¶</a></dt>
+<dd><p>Zigzag shifts hyperplanes against each other in alternating directions
+arr, axis, and direction have the same meaning as for shear and tilt.
+This command causes hyperplanes to be shifted in the indicated
+direction. The shift grows linearly up to the depth specified in the
+parameter depth over stride hyperplanes.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-rubik.zorder">
+<span id="zorder-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">zorder</span></tt> Module<a class="headerlink" href="#module-rubik.zorder" title="Permalink to this headline">¶</a></h2>
+<p>This file provides routines to transform the elements of an ndarray from
+dimension-major order to Z-order.</p>
+<dl class="class">
+<dt id="rubik.zorder.ZEncoder">
+<em class="property">class </em><tt class="descclassname">rubik.zorder.</tt><tt class="descname">ZEncoder</tt><big>(</big><em>ndim</em>, <em>bits=64</em><big>)</big><a class="headerlink" href="#rubik.zorder.ZEncoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>Class representing a set of bitmasks for encoding/decoding
+n-dimensional morton numbers.</p>
+<dl class="docutils">
+<dt>Parameters:</dt>
+<dd>ndim    number of dimensions to encode/decode for.
+bits    number of bits in the generated codes.</dd>
+</dl>
+<p>Note: Codes are internally generated with as many bits as are necessary,
+then they are returned as either numpy.uint32 or numpy.uint64, depending
+on how many bits are needed to represent the codes.</p>
+<dl class="method">
+<dt id="rubik.zorder.ZEncoder.bin_str">
+<tt class="descname">bin_str</tt><big>(</big><big>)</big><a class="headerlink" href="#rubik.zorder.ZEncoder.bin_str" title="Permalink to this definition">¶</a></dt>
+<dd><p>formatted string with masks in the filter in binary, along with
+their left and right shifts.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rubik.zorder.ZEncoder.compact">
+<tt class="descname">compact</tt><big>(</big><em>x</em><big>)</big><a class="headerlink" href="#rubik.zorder.ZEncoder.compact" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies filter in reverse to push spread bits back together.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="rubik.zorder.ZEncoder.create_filter">
+<em class="property">classmethod </em><tt class="descname">create_filter</tt><big>(</big><em>ndim</em>, <em>bits</em><big>)</big><a class="headerlink" href="#rubik.zorder.ZEncoder.create_filter" title="Permalink to this definition">¶</a></dt>
+<dd><p>This creates a filter (a set of bitmasks) that can be used to
+quickly generate n-dimensional Z codes (Morton codes). The filter is
+based on the method described here:
+<a class="reference external" href="http://graphics.stanford.edu/~seander/bithacks.html#InterleaveBMN">http://graphics.stanford.edu/~seander/bithacks.html#InterleaveBMN</a></p>
+<p>Parameters:</p>
+<dl class="docutils">
+<dt>ndim</dt>
+<dd>number of dimensions in the z curve</dd>
+<dt>bits</dt>
+<dd>bit width of morton codes to be generated. Each coordinate gets
+bits/ndim bits.</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="rubik.zorder.ZEncoder.decode">
+<tt class="descname">decode</tt><big>(</big><em>value</em><big>)</big><a class="headerlink" href="#rubik.zorder.ZEncoder.decode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given an ndim-dimensional morton code, returns the corresponding
+point as a tuple.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rubik.zorder.ZEncoder.encode">
+<tt class="descname">encode</tt><big>(</big><em>point</em><big>)</big><a class="headerlink" href="#rubik.zorder.ZEncoder.encode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes a point and returns a morton code for that point.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rubik.zorder.ZEncoder.filters">
+<tt class="descname">filters</tt><em class="property"> = {}</em><a class="headerlink" href="#rubik.zorder.ZEncoder.filters" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="rubik.zorder.ZEncoder.for_shape">
+<em class="property">classmethod </em><tt class="descname">for_shape</tt><big>(</big><em>shape</em><big>)</big><a class="headerlink" href="#rubik.zorder.ZEncoder.for_shape" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rubik.zorder.ZEncoder.get_filter">
+<tt class="descname">get_filter</tt><big>(</big><em>ndim</em>, <em>bits</em><big>)</big><a class="headerlink" href="#rubik.zorder.ZEncoder.get_filter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a possibly memoized filter for the dimensions bit length
+specified.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rubik.zorder.ZEncoder.hex_str">
+<tt class="descname">hex_str</tt><big>(</big><big>)</big><a class="headerlink" href="#rubik.zorder.ZEncoder.hex_str" title="Permalink to this definition">¶</a></dt>
+<dd><p>formatted string with masks in the filter in hexadecimal, along
+with their left and right shifts.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rubik.zorder.ZEncoder.spread">
+<tt class="descname">spread</tt><big>(</big><em>x</em><big>)</big><a class="headerlink" href="#rubik.zorder.ZEncoder.spread" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies filter to spread the bits of x apart by ndim-1 zeros.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="rubik.zorder.b">
+<tt class="descclassname">rubik.zorder.</tt><tt class="descname">b</tt><big>(</big><em>num</em>, <em>bytes=8</em><big>)</big><a class="headerlink" href="#rubik.zorder.b" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="rubik.zorder.h">
+<tt class="descclassname">rubik.zorder.</tt><tt class="descname">h</tt><big>(</big><em>num</em>, <em>bytes=8</em><big>)</big><a class="headerlink" href="#rubik.zorder.h" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="rubik.zorder.le_power_of_2">
+<tt class="descclassname">rubik.zorder.</tt><tt class="descname">le_power_of_2</tt><big>(</big><em>num</em><big>)</big><a class="headerlink" href="#rubik.zorder.le_power_of_2" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets a power of two less than or equal to num. Works for up to 64-bit
+numbers.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rubik.zorder.zenumerate">
+<tt class="descclassname">rubik.zorder.</tt><tt class="descname">zenumerate</tt><big>(</big><em>shape</em><big>)</big><a class="headerlink" href="#rubik.zorder.zenumerate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Enumerates points in the shape in Z order. Currently dumps the morton
+codes into an array and sorts them, then regenerates points in that
+order. This is O(nlogn) time. We could do better for matrices with more
+even aspect ratios by enuerating all morton codes from 0 on and
+converting to points, but that is O(n^2) for irregular shapes.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rubik.zorder.zorder">
+<tt class="descclassname">rubik.zorder.</tt><tt class="descname">zorder</tt><big>(</big><em>arr</em><big>)</big><a class="headerlink" href="#rubik.zorder.zorder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transform the elements of an ndarray from dimension-major order to z
+order. This modifies the array.</p>
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Source Code Documentation</a><ul>
+<li><a class="reference internal" href="#module-rubik.__init__"><tt class="docutils literal"><span class="pre">rubik</span></tt> Package</a></li>
+<li><a class="reference internal" href="#module-rubik.box"><tt class="docutils literal"><span class="pre">box</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-rubik.partition"><tt class="docutils literal"><span class="pre">partition</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-rubik.process"><tt class="docutils literal"><span class="pre">process</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-rubik.view"><tt class="docutils literal"><span class="pre">view</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-rubik.face"><tt class="docutils literal"><span class="pre">face</span></tt> Module</a></li>
+<li><a class="reference internal" href="#arrayutils-module"><tt class="docutils literal"><span class="pre">arrayutils</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-rubik.zorder"><tt class="docutils literal"><span class="pre">zorder</span></tt> Module</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="userguide.html"
+                        title="previous chapter">User Guide</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/rubik.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="userguide.html" title="User Guide"
+             >previous</a> |</li>
+        <li><a href="index.html">Rubik 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+  <div class=footer>
+  <table border=0 align="center">
+  <tr>
+    <td>
+      <a href="http://www.llnl.gov"><img src="_static/llnl-logo-50.png"></a>
+      &nbsp;&nbsp;
+    </td>
+    <td align="left">
+      <a href="http://www.llnl.gov/disclaimer.html" style="color: white">Privacy & Legal Notice</a> LLNL-WEB-597312<br><br>
+      <strong><a href="http://www.llnl.gov" style="color: white">Lawrence Livermore National Laboratory</a></strong> &bull; 7000 East Avenue &bull; Livermore, CA 94550<br>
+      Operated by <a href="http://www.llnsllc.com" style="color: white">Lawrence Livermore National Security, LLC</a> for the <a href="http://www.energy.gov">Department of Energy</a>'s <a href="http://www.nnsa.energy.gov" style="color: white">National Nuclear Security Administration</a>
+    </td>
+    <td>
+      &nbsp;&nbsp; <a href="http://www.nnsa.energy.gov"><img src="_static/nnsa2.gif"></a>
+      &nbsp; <a href="http://www.energy.gov"><img src="_static/doe.gif"></a>
+    </td>
+  </tr>
+  </table>
+  </div>
+
+  </body>
+</html>

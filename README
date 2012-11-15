@@ -1,0 +1,23 @@
+================================================================================
+ Rubik v1.0
+================================================================================
+
+Author:
+  Todd Gamblin tgamblin@llnl.gov
+
+Contributors:
+  Abhinav Bhatele bhatele@llnl.gov
+  Martin Schulz schulzm@llnl.gov
+
+Rubik generates mapping files for torus and mesh networks according to
+structured transformations of blocks within the ranks.
+
+Running Rubik Scripts:
+To use rubik, either add the <distribution>/rubik directory to your PYTHONPATH,
+or just be sure to run scripts in the root directory.  A proper setup.py and
+installation process is forthcoming.
+
+
+Online Tutorial:
+  http://scalability.llnl.gov/
+

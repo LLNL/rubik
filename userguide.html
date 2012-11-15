@@ -1,0 +1,403 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>User Guide &mdash; Rubik 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Rubik 1.0 documentation" href="index.html" />
+    <link rel="next" title="Source Code Documentation" href="rubik.html" />
+    <link rel="prev" title="Basic Tutorial" href="tutorial.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="rubik.html" title="Source Code Documentation"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="tutorial.html" title="Basic Tutorial"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Rubik 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="user-guide">
+<h1>User Guide<a class="headerlink" href="#user-guide" title="Permalink to this headline">¶</a></h1>
+<p>Rubik is a tool that simplifies the process of creating task mappings for
+structured applications.  Rubik allows an application developer to specify
+communicating groups of processes in a virtual application topology succinctly
+and map them onto groups of processors in a physical network topology.  Both
+the application topology and the network topology must be Cartesian, but the
+dimensionality of either is arbitrary.  This allows users to easily map
+low-dimensional structures such as planes to higher-dimensional structures like
+cubes to increase the number of links used for routing.</p>
+<p>Rubik also provides embedding operations that adjust the way tasks are laid out
+within groups.  These operations are intended to optimize particular types of
+communication among ranks in a group, either by shifting them to increase the
+number of available links for communication between processor pairs or by
+moving communicating ranks closer together on the Cartesian topology to reduce
+latency.  In conjunction with Rubik&#8217;s mapping semantics, these operations allow
+users to create a wide variety of task layouts for structured codes by
+composing a few fundamental operations, which we describe in the following
+sections.</p>
+<div class="section" id="partition-trees">
+<h2>Partition Trees<a class="headerlink" href="#partition-trees" title="Permalink to this headline">¶</a></h2>
+<p>The fundamental data structure in Rubik is the <em>partition tree</em>, a hierarchy of
+<em>n</em>-D Cartesian spaces. We use partition trees to specify groups of tasks (or
+processes) in the parallel application and groups of processors (or nodes) on
+the network.  Nodes of a partition tree represent boxes, where a <em>box</em> is an
+<em>n</em>-D Cartesian space.  Each element in a box is an object that could be a task
+or a processor.  New boxes are filled by default with objects numbered by rank
+(much like MPI communicators).</p>
+<p>Every partition tree starts with a single root <em>box</em> representing the full
+<em>n</em>-D Cartesian space to be partitioned.  We construct a box from a list of its
+dimensions, e.g., a 4 x 4 x 4 3D application domain.  From the root, the tree
+is subdivided into smaller child boxes representing communication groups (MPI
+sub-communicators) in the application.  Child boxes in a partition tree are
+disjoint, and the union of any node&#8217;s child boxes is its own box.  Unlike other
+tools, which are are restricted to two or three dimensions, Rubik&#8217;s syntax
+works for any number of dimensions. An arbitrary number of dimensions can be
+specified when a box is constructed.</p>
+<a class="reference internal image-reference" href="_images/partition-1.png"><img alt="_images/partition-1.png" class="align-right" src="_images/partition-1.png" style="width: 98.0px; height: 104.0px;" /></a>
+<a class="reference internal image-reference" href="_images/partition-2.png"><img alt="_images/partition-2.png" class="align-right" src="_images/partition-2.png" style="width: 98.0px; height: 104.0px;" /></a>
+<a class="reference internal image-reference" href="_images/partition-3.png"><img alt="_images/partition-3.png" class="align-right" src="_images/partition-3.png" style="width: 98.0px; height: 104.0px;" /></a>
+<p>The Rubik code below is used to construct a partition tree:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">domain</span> <span class="o">=</span> <span class="n">box</span><span class="p">([</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">])</span>  <span class="c"># a. Create a cube</span>
+<span class="n">domain</span><span class="o">.</span><span class="n">div</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">])</span>    <span class="c"># b. Divide into halves</span>
+<span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">domain</span><span class="p">:</span>
+    <span class="n">child</span><span class="o">.</span><span class="n">div</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">])</span> <span class="c"># c. Divide each half into 4</span>
+</pre></div>
+</div>
+<p>On line 1, we construct a 4 x 4 x 4 domain using the <tt class="docutils literal"><span class="pre">box</span></tt> command.  This
+creates a one-level tree with a single box of 64 tasks (figure on the right).
+In line 2, we use Rubik&#8217;s <tt class="docutils literal"><span class="pre">div</span></tt> command to split this tree along the third
+dimension into two boxes of 32 tasks, which fully cover the original box.
+Lines 3 and 4 loop over the newly created children and further split each child
+into 4 children of its own, with 8 tasks each.</p>
+<p>The cubes in the figures on the right show the Cartesian structure of the tree.
+Leaf nodes are nested in transparent halos of their parent boxes.  Each leaf
+box is given a unique color, and object numbering (MPI rank) within each leaf
+box is shown using a color gradient.  The lowest rank within a leaf box has the
+lightest color.  The tree diagrams below the cubes show the partition tree
+structure with boxes shown as nodes and labeled by the number of tasks they
+contain.</p>
+<div class="section" id="partitioning-operations">
+<h3>Partitioning Operations<a class="headerlink" href="#partitioning-operations" title="Permalink to this headline">¶</a></h3>
+<p>The <tt class="docutils literal"><span class="pre">div</span></tt> operation used in the previous section is one of four operations in
+Rubik that divide a box into children: <tt class="docutils literal"><span class="pre">div</span></tt>, <tt class="docutils literal"><span class="pre">tile</span></tt>, <tt class="docutils literal"><span class="pre">mod</span></tt> and <tt class="docutils literal"><span class="pre">cut</span></tt>.
+Like the <tt class="docutils literal"><span class="pre">box</span></tt> constructor, these operations can be used on an arbitrary
+number of dimensions.</p>
+<a class="reference internal image-reference" href="_images/div.png"><img alt="_images/div.png" class="align-right" src="_images/div.png" style="width: 115.75px; height: 123.5px;" /></a>
+<p><strong>Div</strong>: <tt class="docutils literal"><span class="pre">div</span></tt> takes a set of <em>divisors</em> <cite>d_0, d_1, ... d_n</cite> as argument, one
+for each dimension of the box it divides.  It slices the parent box into <cite>d_i</cite>
+groups along dimension $i$, creating <cite>prod_{i=0}^{n-1}{d_i}</cite> child boxes.  The
+child boxes form a <cite>d_0 x d_1 x ... x d_n</cite> space where the task at position
+<cite>(x_0, x_1, ..., x_n)</cite> in the parent box is in the child box with index
+<cite>(frac{x_0}{d_0}, frac{x_1}{d_1}, ..., frac{x_n}{d_n})</cite>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">app</span> <span class="o">=</span> <span class="n">box</span><span class="p">([</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">])</span>
+<span class="n">app</span><span class="o">.</span><span class="n">div</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">4</span><span class="p">])</span>
+</pre></div>
+</div>
+<p><strong>Tile</strong>: While <tt class="docutils literal"><span class="pre">div</span></tt> divides a space into a fixed number number of groups,
+<tt class="docutils literal"><span class="pre">tile</span></tt> divides a space into fixed-size child boxes, or $tiles$.  The number
+of tiles created depends on the size of the box that <tt class="docutils literal"><span class="pre">tile</span></tt> is applied to.
+Arguments to <tt class="docutils literal"><span class="pre">tile</span></tt> are tile dimensions rather than divisors.  Formally,
+<tt class="docutils literal"><span class="pre">tile</span></tt> on a <cite>D_0 x D_1 x ... x D_n</cite> space is equivalent to <tt class="docutils literal"><span class="pre">div</span></tt> with
+divisors <cite>frac{D_0}{d_0}, frac{D_1}{d_1}, ..., frac{D_n}{d_n}</cite>. The figure
+on the right shows the same boxes created using <tt class="docutils literal"><span class="pre">div</span></tt> and <tt class="docutils literal"><span class="pre">tile</span></tt>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">app</span> <span class="o">=</span> <span class="n">box</span><span class="p">([</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">])</span>
+<span class="n">app</span><span class="o">.</span><span class="n">tile</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">1</span><span class="p">])</span>
+</pre></div>
+</div>
+<a class="reference internal image-reference" href="_images/mod.png"><img alt="_images/mod.png" class="align-right" src="_images/mod.png" style="width: 115.75px; height: 123.5px;" /></a>
+<a class="reference internal image-reference" href="_images/cut.png"><img alt="_images/cut.png" class="align-right" src="_images/cut.png" style="width: 115.75px; height: 123.5px;" /></a>
+<p><strong>Mod</strong> The <tt class="docutils literal"><span class="pre">mod</span></tt> operation shown on the right is similar to <tt class="docutils literal"><span class="pre">div</span></tt> in that
+it also takes a list of <cite>n</cite> divisors and creates <cite>prod_{i=0}^{n-1}{d_i}</cite> child
+boxes.  However, <tt class="docutils literal"><span class="pre">mod</span></tt>&#8216;s child boxes are interleaved, not contiguous.  With
+<tt class="docutils literal"><span class="pre">mod</span></tt>, task <cite>(x_0, x_1, ..., x_n)</cite> will be a member of the child box <cite>((x_0
+bmod d_0), (x_1 bmod d_1), ..., (x_n bmod d_n))</cite>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">app</span> <span class="o">=</span> <span class="n">box</span><span class="p">([</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">])</span>
+<span class="n">app</span><span class="o">.</span><span class="n">mod</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">])</span>
+</pre></div>
+</div>
+<p><strong>Cut</strong> The <tt class="docutils literal"><span class="pre">cut</span></tt> operation shown on the right is a generalization of <tt class="docutils literal"><span class="pre">div</span></tt>
+and <tt class="docutils literal"><span class="pre">mod</span></tt>. <tt class="docutils literal"><span class="pre">cut</span></tt> takes the same set of divisors as <tt class="docutils literal"><span class="pre">div</span></tt> and <tt class="docutils literal"><span class="pre">mod</span></tt>, but
+it also takes a second list that specifies the manner of slicing in each
+dimension.  In the picture, we can clearly see that <tt class="docutils literal"><span class="pre">cut</span></tt> creates contiguous
+slices along dimensions where <tt class="docutils literal"><span class="pre">div</span></tt> is specified, but along the third
+dimension which uses <tt class="docutils literal"><span class="pre">mod</span></tt>, the child boxes are interleaved:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">app</span> <span class="o">=</span> <span class="n">box</span><span class="p">([</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">])</span>
+<span class="n">app</span><span class="o">.</span><span class="n">cut</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="n">div</span><span class="p">,</span><span class="n">div</span><span class="p">,</span><span class="n">mod</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="mapping">
+<h2>Mapping<a class="headerlink" href="#mapping" title="Permalink to this headline">¶</a></h2>
+<p>Partition trees in Rubik are used not only to specify groups of tasks in a
+Cartesian application domain, but also to specify groups of processors on the
+physical network.  The tool is designed to simplify the process of mapping
+tasks between spaces with potentially different dimensionality.  A fundamental
+example is that of mapping planes to boxes. Scientific applications may perform
+collective operations within a plane in the application domain, but mapping a
+plane directly onto a 3D mesh network will not maximize the number of physical
+links available for communication within the plane.  Mapping the plane&#8217;s tasks
+to a higher dimensional space allows more bandwidth to be exploited.  Rubik
+makes this easy by facilitating mapping for arbitrary number of dimensions.</p>
+<p>The figure below shows two boxes of 216 objects subdivided into eight
+27-object groups.  The first box&#8217;s children are planes, and the second box&#8217;s
+children are cubes.  Regardless of the particular structure, the number of
+leaves in the two partition trees is the same and each is of the same size.
+Such trees are considered <em>compatible</em>.  Two compatible trees can be
+<tt class="docutils literal"><span class="pre">mapped</span></tt> by performing a simple breadth-first traversal of their leaves and
+pairing off successive child boxes. The arrows in the figure show these
+pairings for the example. For each pair, we take the tasks in the child boxes
+in the application domain and copy them into the corresponding boxes in the
+network domain.</p>
+<a class="reference internal image-reference" href="_images/map-operation.jpg"><img alt="_images/map-operation.jpg" class="align-right" src="_images/map-operation.jpg" style="width: 446.85px; height: 204.3px;" /></a>
+<p>Rubik code:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="c"># Create app partition tree of 27-task planes</span>
+<span class="n">app</span> <span class="o">=</span> <span class="n">box</span><span class="p">([</span><span class="mi">9</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">8</span><span class="p">])</span>
+<span class="n">app</span><span class="o">.</span><span class="n">tile</span><span class="p">([</span><span class="mi">9</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">])</span>
+
+<span class="c"># Create network partition tree of 27-processor cubes</span>
+<span class="n">network</span> <span class="o">=</span> <span class="n">box</span><span class="p">([</span><span class="mi">6</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">6</span><span class="p">])</span>
+<span class="n">network</span><span class="o">.</span><span class="n">tile</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">3</span><span class="p">])</span>
+
+<span class="n">network</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">app</span><span class="p">)</span>  <span class="c"># Map task planes into cubes</span>
+</pre></div>
+</div>
+<p>The Rubik <tt class="docutils literal"><span class="pre">map</span></tt> operation reduces the burden of mapping multi-dimensional
+spaces by allowing the user to think only in terms of group sizes.  The
+particular shapes of groups are specified separately using the simple
+partitioning operations discussed above. All that is required for a <tt class="docutils literal"><span class="pre">map</span></tt>
+is tree compatibility.</p>
+<div class="section" id="writing-map-files">
+<h3>Writing map files<a class="headerlink" href="#writing-map-files" title="Permalink to this headline">¶</a></h3>
+<p>Once Rubik has mapped a set of tasks to a network decomposition, it can write
+out map files suitable for use on a number of high performance computing
+systems using <tt class="docutils literal"><span class="pre">write_map_file</span></tt>.</p>
+</div>
+</div>
+<div class="section" id="permuting-operations">
+<h2>Permuting operations<a class="headerlink" href="#permuting-operations" title="Permalink to this headline">¶</a></h2>
+<a class="reference internal image-reference" href="_images/untilted.png"><img alt="_images/untilted.png" class="align-right" src="_images/untilted.png" style="width: 117.25px; height: 124.5px;" /></a>
+<a class="reference internal image-reference" href="_images/tilted-zx.png"><img alt="_images/tilted-zx.png" class="align-right" src="_images/tilted-zx.png" style="width: 115.75px; height: 123.5px;" /></a>
+<a class="reference internal image-reference" href="_images/tilted-zx-xy.png"><img alt="_images/tilted-zx-xy.png" class="align-right" src="_images/tilted-zx-xy.png" style="width: 115.75px; height: 123.5px;" /></a>
+<p>By default, the Rubik <tt class="docutils literal"><span class="pre">map</span></tt> operation copies ranks between Cartesian spaces
+in scan-line order, with the highest-indexed dimension varying fastest.  While
+this is an intuitive default order, a user may want to permute ranks within
+groups to target bandwidth or latency optimizations.  Rubik has several
+operations that allow tasks to be permuted to exploit properties of the
+physical network: <tt class="docutils literal"><span class="pre">tilt</span></tt>, <tt class="docutils literal"><span class="pre">zigzag</span></tt>, and <tt class="docutils literal"><span class="pre">zorder</span></tt>.</p>
+<p><strong>Tilt</strong> The <tt class="docutils literal"><span class="pre">tilt</span></tt> operation can increase the number of links available for
+messaging on <em>n</em>-D Cartesian networks.  Conceptually, <tt class="docutils literal"><span class="pre">tilt(op1,op2,op3)</span></tt>
+selects one hyperplane (denoted by <tt class="docutils literal"><span class="pre">op1</span></tt>) and a direction (<tt class="docutils literal"><span class="pre">op2</span></tt>) along
+which an increasing number (<tt class="docutils literal"><span class="pre">op3</span></tt>) of shifts are applied normal to the
+direction of the hyperplane. Shifts are applied in a circular fashion to all
+parallel hyperplanes resulting in a permutation that &#8220;tilts&#8221; each hyperplane.
+The figures on the right show multiple, successive applications of the tilt
+operation to a 4 x 4 x 4 box.  On the left is an untilted box, with tasks
+colored by identity (MPI rank) from lightest to darkest.  In the center, we see
+the same tasks after permutation by one tilt, and on the right is the same box
+after two tilts have been applied:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">Z</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">X</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span>  <span class="c"># Assign names to dimensions</span>
+<span class="n">net</span> <span class="o">=</span> <span class="n">box</span><span class="p">([</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">])</span> <span class="c"># Create a box</span>
+<span class="n">net</span><span class="o">.</span><span class="n">tilt</span><span class="p">(</span><span class="n">Z</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  <span class="c"># Tilt Z (XY) planes along X</span>
+<span class="n">net</span><span class="o">.</span><span class="n">tilt</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  <span class="c"># Tilt X (YZ) planes along Y</span>
+</pre></div>
+</div>
+<p><tt class="docutils literal"><span class="pre">tilt</span></tt> tries to increase the available links for communication between
+neighbor tasks.  For example, by shifting hyperplanes normal to <em>X</em>, we add
+links in the <em>X</em> dimension that neighbors can use for communication.
+Successive tilts in additional dimensions add links in more dimensions.  The
+higher the dimension of the network the more independent <tt class="docutils literal"><span class="pre">tilt</span></tt>&#8216;s can be
+performed and the more links can be exploited.</p>
+<p><strong>Zigzag</strong> The <tt class="docutils literal"><span class="pre">zigzag</span></tt> operation is similar to the tilt operation
+in that it shifts hyperplanes along a dimension. However, rather than shifting
+each successive plane by an increasing amount, <tt class="docutils literal"><span class="pre">zigzag</span></tt> only shifts
+alternating segments by a constant amount.  This targets bandwidth in
+effectively the same way that <tt class="docutils literal"><span class="pre">tilt</span></tt> does, by adding links along the
+permuted dimension. However, <tt class="docutils literal"><span class="pre">zigzag</span></tt> has better latency properties than
+<tt class="docutils literal"><span class="pre">tilt</span></tt> since tasks stay closer to their starting point after a <tt class="docutils literal"><span class="pre">zigzag</span></tt>
+than they would with <tt class="docutils literal"><span class="pre">tilt</span></tt>.</p>
+<p><strong>Zorder</strong> Z-ordering is a space-filling curve that maps a multi-dimensional
+space to a linear curve while partially preserving multi-dimensional locality.
+Space-filling curves have been used heavily in the mapping literature for
+latency optimizations.  Rubik provides a <tt class="docutils literal"><span class="pre">zorder</span></tt> permutation operation for
+this purpose, as well. Like other operations in Rubik, our <tt class="docutils literal"><span class="pre">zorder</span></tt> operation
+can scale to an arbitrary number of dimensions. Rubik dynamically constructs
+the necessary bit filters to translate high-dimensional Z codes, and <tt class="docutils literal"><span class="pre">zorder</span></tt>
+can be called on any type of box.</p>
+<div class="section" id="hierarchical-permutation">
+<h3>Hierarchical permutation<a class="headerlink" href="#hierarchical-permutation" title="Permalink to this headline">¶</a></h3>
+<p>Rubik permutations can be applied to boxes at any level of a partition tree.
+The figure on the right shows a 192-task partition tree, <tt class="docutils literal"><span class="pre">net</span></tt>.  The tree has
+three 4 x 4 x 4 children.  Here, we apply a different permutation (<tt class="docutils literal"><span class="pre">tilt</span></tt>,
+<tt class="docutils literal"><span class="pre">zorder</span></tt>, or <tt class="docutils literal"><span class="pre">zigzag</span></tt>) to each child.  Accessing children is simple:
+Rubik&#8217;s partitioning operations define a <cite>d_0 x d_1 x ... x d_n</cite> subspace and
+each element can be accessed via the corresponding subscript into this space.
+In the example, one could call any of these operations on <tt class="docutils literal"><span class="pre">net</span></tt>, and they
+would apply to the <em>entire</em> box instead of a subgroup.</p>
+<a class="reference internal image-reference" href="_images/tilt-zorder-zigzag.png"><img alt="_images/tilt-zorder-zigzag.png" class="align-right" src="_images/tilt-zorder-zigzag.png" style="width: 248.0px; height: 180.4px;" /></a>
+<p>Rubik code:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">Z</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">X</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span>
+<span class="n">net</span> <span class="o">=</span> <span class="n">box</span><span class="p">([</span><span class="mi">12</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">])</span>
+<span class="n">net</span><span class="o">.</span><span class="n">div</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">net</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">tilt</span><span class="p">(</span><span class="n">Z</span><span class="p">,</span><span class="n">X</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">net</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">tilt</span><span class="p">(</span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">net</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">zorder</span><span class="p">()</span>
+<span class="n">net</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">zigzag</span><span class="p">(</span><span class="n">Z</span><span class="p">,</span><span class="n">X</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">net</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">zigzag</span><span class="p">(</span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="dimensionality-independent-operations">
+<h2>Dimensionality-independent operations<a class="headerlink" href="#dimensionality-independent-operations" title="Permalink to this headline">¶</a></h2>
+<p>As described above, all of Rubik&#8217;s operations are dimensionality-independent.
+They can apply to arbitrary number of dimensions, and the same operations that
+are used on a 3D BG/P or Cray XT torus could be used on a 5D BG/Q torus, or on
+a 6-dimensional tofu network of the K supercomputer.  Each operation is
+designed so that it can be applied in a lower-dimensional space that is easy to
+visualize, then scaled up in a regular fashion to higher dimensional spaces.
+The visualization tool used to generate the figures in this paper takes the
+same Python scripts as input that are used to generate the mappings.
+Developers can view their mapping operations as they work, and this allows them
+to reason intuitively about the effects of Rubik mappings in higher dimensions.</p>
+<p>Rubik does not discover optimal network mappings automatically, nor is it
+intended to do so.  It allows developers to leverage <em>a priori</em> knowledge
+of the application and architecture and target latency and/or bandwidth
+optimizations as the case maybe.  It also provides a framework within which
+application developers can make reasonable mapping choices to quickly and
+intuitively embed their applications in higher-dimensional Cartesian spaces.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">User Guide</a><ul>
+<li><a class="reference internal" href="#partition-trees">Partition Trees</a><ul>
+<li><a class="reference internal" href="#partitioning-operations">Partitioning Operations</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#mapping">Mapping</a><ul>
+<li><a class="reference internal" href="#writing-map-files">Writing map files</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#permuting-operations">Permuting operations</a><ul>
+<li><a class="reference internal" href="#hierarchical-permutation">Hierarchical permutation</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#dimensionality-independent-operations">Dimensionality-independent operations</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="tutorial.html"
+                        title="previous chapter">Basic Tutorial</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="rubik.html"
+                        title="next chapter">Source Code Documentation</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/userguide.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="rubik.html" title="Source Code Documentation"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="tutorial.html" title="Basic Tutorial"
+             >previous</a> |</li>
+        <li><a href="index.html">Rubik 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+  <div class=footer>
+  <table border=0 align="center">
+  <tr>
+    <td>
+      <a href="http://www.llnl.gov"><img src="_static/llnl-logo-50.png"></a>
+      &nbsp;&nbsp;
+    </td>
+    <td align="left">
+      <a href="http://www.llnl.gov/disclaimer.html" style="color: white">Privacy & Legal Notice</a> LLNL-WEB-597312<br><br>
+      <strong><a href="http://www.llnl.gov" style="color: white">Lawrence Livermore National Laboratory</a></strong> &bull; 7000 East Avenue &bull; Livermore, CA 94550<br>
+      Operated by <a href="http://www.llnsllc.com" style="color: white">Lawrence Livermore National Security, LLC</a> for the <a href="http://www.energy.gov">Department of Energy</a>'s <a href="http://www.nnsa.energy.gov" style="color: white">National Nuclear Security Administration</a>
+    </td>
+    <td>
+      &nbsp;&nbsp; <a href="http://www.nnsa.energy.gov"><img src="_static/nnsa2.gif"></a>
+      &nbsp; <a href="http://www.energy.gov"><img src="_static/doe.gif"></a>
+    </td>
+  </tr>
+  </table>
+  </div>
+
+  </body>
+</html>
