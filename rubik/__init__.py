@@ -15,9 +15,12 @@ groups as well as the entire processor partition.
 """
 
 import sys
-sys.path.append('/soft/apps/python/python-2.6.4-fen-gcc/numpy-1.3.0/lib/python2.6/site-packages/numpy')	# Intrepid at Argonne
-sys.path.append('/soft/apps/python/python-2.6.6-fen-gcc/usr/lib64/python2.6/site-packages')		# Vesta at Argonne
-import zorder
+for path in [
+    # Argonne machines
+    '/soft/apps/python/python-2.6.4-fen-gcc/numpy-1.3.0/lib/python2.6/site-packages/numpy' # Intrepid
+    '/soft/apps/python/python-2.6.6-fen-gcc/usr/lib64/python2.6/site-packages'             # Vesta
+    ]:
+    sys.path.append(path)
 
 from partition import *
 from process import *

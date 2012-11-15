@@ -8,72 +8,42 @@ def data(arr):
     """This gets the address of a numpy array's data buffer."""
     return arr.__array_interface__["data"][0]
 
-def view_to_base(view, index=None):
+def base_corner(view):
+    """Finds index of the (0, 0, ...) element of view within its base."""
+    if view.base == None:
+        raise ValueError("View must have a valid base array.")
+
+    offset = data(view) - data(view.base)
+    corner = []
+    for s in view.base.strides:
+        corner.append(offset / s)
+        offset %= s
+    return tuple(corner)
+
+class IndexConverter(object):
     """Given a numpy view and an index into it, this will convert the index in
     the view to the corresponding index in the base.  Example::
 
         base = np.empty([4,4])
         view = base[1::2, 1::2]
-        print view_to_base(view, (0,0))
+        ic = IndexConverter(view)
+
+        print ic.view_to_base((0,0))
         (1,1)
 
-    If you call this without an index, it returns a function that can
-    be used to efficently convert a lot of indices for the same view::
-
-        vtob = view_to_base(view)
-        print vtob((0,0))
-        (1,1)
-    """
-    if view.base == None:
-        raise ValueError("View must have a valid base array.")
-
-    offset = data(view) - data(view.base)
-    corner = []
-    for s in view.base.strides:
-        corner.append(offset / s)
-        offset %= s
-    scale = [v / b for v, b in zip(view.strides, view.base.strides)]
-
-    def vtob(index):
-        return tuple([c + i * s for c,i,s in zip(corner, index, scale)])
-
-    if index == None:
-        return vtob
-    else:
-        return vtob(index)
-
-def base_to_view(view, index=None):
-    """Given a numpy view and an index into it, this will convert the index in
-    the base to the corresponding index in the view.  Example::
-
-        base = np.empty([4,4])
-        view = base[1::2, 1::2]
-        print view_to_base(view, (0,0))
-        (1,1)
-
-    If you call this without an index, it returns a function that can
-    be used to efficently convert a lot of indices for the same view::
-
-        btov = base_to_view(view)
-        print btov((1,1))
+        print ic.base_to_view((1,1))
         (0,0)
     """
-    if view.base == None:
-        raise ValueError("View must have a valid base array.")
+    def __init__(self, view):
+        self.corner = base_corner(view)
+        self.scale = [v / b for v, b in zip(view.strides, view.base.strides)]
 
-    offset = data(view) - data(view.base)
-    corner = []
-    for s in view.base.strides:
-        corner.append(offset / s)
-        offset %= s
-    scale = [v / b for v, b in zip(view.strides, view.base.strides)]
+    def view_to_base(self, index):
+        return tuple([c + i * s for c,i,s in zip(self.corner, index, self.scale)])
 
-    def btov(index):
-        return tuple([(i - c) / s for c,i,s in zip(corner, index, scale)])
-    if index == None:
-        return btov
-    else:
-        return btov(index)
+    def base_to_view(self, index):
+        return tuple([(i - c) / s for c,i,s in zip(self.corner, index, self.scale)])
+
 
 def hyperplane(arr, axis, index):
     """ This generates a slice list that will select one hyperplane out of a

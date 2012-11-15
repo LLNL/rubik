@@ -1,11 +1,14 @@
 """
 This file defines the basic Partition class in Rubik.
 """
-
 import zorder
 import sys
+import pickle
 import numpy as np
+from contextlib import closing
 from arrayutils import *
+from itertools import ifilter
+from collections import deque
 
 class Partition(object):
     """ Tree of views of an initial Box. Each successive level is a set of
@@ -18,14 +21,26 @@ class Partition(object):
 	list that the top-level Partition has.
         """
         self.box        = box
-        self.vtob       = None
-        self.btov       = None
-        self.procs      = None
+        self.iconv      = None
         self.parent     = parent
         self.index      = index
         self.flat_index = flat_index
         self.level      = level
+        self.cutargs    = None
         self.children   = np.array([], dtype=object)
+        self.elements   = []
+
+    @classmethod
+    def empty(clz, shape):
+        box = np.empty(shape, dtype=object)
+        index = (0,) * len(box.shape)
+        return Partition(box, None, index, 0, 0)
+
+    @classmethod
+    def fromlist(clz, shape, elements):
+        p = Partition.empty(shape)
+        p.flat = elements
+        return p
 
     # === Convenience attributes -- to be more numpy-like ==============
     @property
@@ -40,16 +55,29 @@ class Partition(object):
     def ndim(self):
         return self.box.ndim
 
+    def __iter__(self):
+        for child in self.children.flat:
+            yield child
+
+    @property
+    def flat(self):
+        return FlatIterator(self)
+
+    @flat.setter
+    def flat(self, elts):
+        self.elements = [Meta(e) for e in elts]
+        self.box.flat = self.elements
+
     # === Index conversion routines ====================================
     def parent_to_self(self, index):
-        if not self.btov:
-            self.btov = base_to_view(self.box)
-        return self.btov(index)
+        if not self.iconv:
+            self.iconv = IndexConverter(self.box)
+        return self.iconv.base_to_view(index)
 
     def self_to_parent(self, index):
-        if not self.vtob:
-            self.vtob = view_to_base(self.box)
-        return self.vtob(index)
+        if not self.iconv:
+            self.iconv = IndexConverter(self.box)
+        return self.iconv.view_to_base(index)
 
     # === Partitioning routines ========================================
     def div(self, divisors):
@@ -70,6 +98,8 @@ class Partition(object):
 	"""
         views = cut(self.box, divisors, slicers)   # Get an array of all the subpartitions (views)
 
+        assert(all(view.base != None for view in views))
+
         # Create partitions so that they know their index and flat index
         # within the parent's child array.
         flat_index = 0
@@ -78,8 +108,11 @@ class Partition(object):
             views[index] = p
             flat_index += 1
 
-        # Finally assign the numpy array to children
+        # Assign the numpy array to children
         self.children = views
+
+        # Record the cut so we can copy this object later.
+        self.cutargs = (divisors, slicers)
 
     # === Reordering Routines ==========================================
     def transpose(self, axes):
@@ -127,52 +160,51 @@ class Partition(object):
 	""" Map the other partition onto this one. First checks if partition
 	sizes are compatible.
         """
-        if self.procs:
-            self.procs = other.procs
-
 	myleaves = [x for x in self.leaves()]
 	otherleaves = [x for x in other.leaves()]
 	if len(myleaves) != len(otherleaves):
 	    raise Exception("Error: Partitions are not compatible")
 
-        for leaf, otherleaf in zip(self.leaves(), other.leaves()):
-	    leaf.box.flat = otherleaf.box.flat
+        # Need to copy Meta objects between partitions (metadata is separate).
+        copies = dict((e, e.copy()) for e in other.box.flat)
+        self.elements = [copies[e] for e in other.elements]
+        for leaf, otherleaf in zip(myleaves, otherleaves):
+	    leaf.box.flat = [copies[o] for o in otherleaf.box.flat]
 
     def compatible(self, other):
-	""" True if and only if other can be mapped to self.  This implies that
-	at each level of the partition tree, self and other have the same
-	number of children, and that the ith child of a node in self has the
-	same size as the ith child of the corresponding node in other.
-        """
-        return (self.box.size == other.box.size and
-                self.children.size != other.children.size and
-                all(x.compatible(y) for x,y in zip(self.children, other.children)))
+	""" True if and only if other can be mapped to self.  This is true
+        if the leaves of self have the same order, number, and size as
+        the leaves of self."""
+	myleaves = [x for x in self.leaves()]
+	otherleaves = [x for x in other.leaves()]
+	if len(myleaves) != len(otherleaves):
+	    return false
+        return all(m.size == o.size for m, o in zip(myleaves, otherleaves))
+
 
     def assign_coordinates(self):
-        """ Assigns coordinates to all processes based on their position in the
-	array.
-	"""
+        """Assigns each element its coordinate in the box."""
         for index in np.ndindex(self.box.shape):
             self.box[index].coord = index
 
-    def write_map_file(self, stream = sys.stdout):
+    def write_map_file(self, stream=sys.stdout):
         """ Write a map file to the specified stream. By default this writes to
 	sys.stdout.
 	"""
-        if not self.procs:
-            raise Exception("Error: Must call write_map_file on root Partition")
-        self.assign_coordinates()  # Put coords into all procs
-        for proc in self.procs:
-            format = " ".join(["%s"] * len(proc.coord)) + "\n"
-            stream.write(format % proc.coord)
+        if self.parent == None:
+            elements = self.elements
+        else:
+            # Here we generate a map file from the elements in the order they
+            # were provided to the root of the tree.  This is about the best we
+            # can do for mapping a subpartition, since the semantics aren't
+            # obvious.
+            my_elts = set(self.box.flat)
+            elements = ifilter(my_elts.__contains__, self.root.elements)
 
-    def __getitem__(self, coords):
-        """ Returns the child at a particular index. """
-        return self.children[coords]
-
-    def __iter__(self):
-        for child in self.children.flat:
-            yield child
+        self.assign_coordinates()
+        for elt in elements:
+            format = " ".join(["%s"] * len(elt.coord)) + "\n"
+            stream.write(format % elt.coord)
 
     @property
     def xancestors(self):
@@ -191,14 +223,21 @@ class Partition(object):
         """
         return list(self.xancestors)
 
+    @property
+    def root(self):
+        p = self
+        while p.parent != None:
+            p = p.parent
+        return p
+
     def plot(self, graph=None):
         import pygraphviz as pgv  # only import this if we call plot function
         if not graph:
             graph = pgv.AGraph(bgcolor="transparent")
             graph.node_attr['shape'] = "circle"
 
-            for proc in self.box.flat:
-                graph.add_node(proc.id,f="foo")
+            for elt in self.flat:
+                graph.add_node(elt.id, f="foo")
 
             for child in self.children.flat:
                 child.plot(graph)
@@ -228,6 +267,13 @@ class Partition(object):
         @property
         def element(self):
             """Returns the element at this index in the partition."""
+            return self.partition.box[self.index].value
+
+        @property
+        def meta(self):
+            """Returns the Meta object at this index in the Partition.
+            Rubik uses this to put metadata on items in the Partition.
+            """
             return self.partition.box[self.index]
 
 
@@ -273,3 +319,111 @@ class Partition(object):
         self.traverse_cells(path_assigner)
         return flat_box
 
+    def get_elements_in_root_order(self):
+        """This gets a list of the elements currently in *this* partition, but
+        they are in the order they appear in the root elements list."""
+
+    def copy(self, clone=None):
+        """Return a copy of this partition with the same cuts applied to it, and
+        with the same elements contained in this one."""
+        if not clone:
+            clone = Partition.empty(self.box.shape)
+
+            # Create copies of only elements in this partition's box.
+            copies = dict((e, e.copy()) for e in self.box.flat)
+
+            # Create a list of copied elements in the order they appear in the
+            # root partition's element list.  This allows us to copy a subtree
+            # of a partition tree into its own partition tree.
+            for elt in ifilter(copies.__contains__, self.root.elements):
+                clone.elements.append(copies[elt])
+
+            clone.flat = [copies[elt] for elt in self.box.flat]
+
+        if self.children.size:
+            clone.cut(*self.cutargs)
+            for child, cp_child in zip(self.children.flat, clone.children.flat):
+                child.copy(cp_child)
+
+        return clone
+
+    def __copy__(self):
+        """Make sure that if someone uses the copy module that it works"""
+        return self.copy()
+
+    def __repr__(self):
+        """Print a nice string representation of this array."""
+        box = np.empty(self.box.shape, dtype=object)
+        box.flat = [elt.value for elt in self.box.flat]
+        return box.__repr__()
+
+    def get_cuts(self, cuts=None):
+        """Returns a list of cuts in this partition in depth-first order."""
+        if not cuts:
+            cuts = deque()
+
+        cuts.append(self.cutargs)
+        for child in self.children.flat:
+            child.get_cuts(cuts)
+        return cuts
+
+    def __getstate__(self):
+        """This encodes the partition as its root element list, its root
+        box, and all of the cuts applied to it in depth-first order."""
+        self.assign_coordinates()
+        return (self.shape, self.elements, self.get_cuts())
+
+    def do_cuts(self, cuts):
+        """Replays a deque of cuts from get_cuts()"""
+        if not cuts:
+            raise ValueError("cuts list was empty!")
+
+        cutargs = cuts.popleft()
+        if cutargs:
+            self.cut(*cutargs)
+
+        for child in self.children.flat:
+            child.do_cuts(cuts)
+
+    def __setstate__(self, state):
+        """Decodes output of __getstate__."""
+        shape, elements, cuts = state
+
+        self.box = np.empty(shape, dtype=object)
+        self.iconv      = None
+        self.parent     = None
+        self.index      = (0,) * len(shape)
+        self.flat_index = 0
+        self.level      = 0
+        self.cutargs    = None
+        self.children   = np.array([], dtype=object)
+        self.elements   = elements
+
+        for elt in elements:
+            self.box[elt.coord] = elt
+
+        self.do_cuts(cuts)
+
+class Meta(object):
+    """Everything in the partition is wrapped in a Meta object that
+    stores attributes like color and coords.  This is so that we don't
+    destructively modify data contained in a partition. """
+    def __init__(self, value, color=None, coord=None):
+        self.value = value
+        self.color = color
+        self.coord = coord
+
+    def copy(self):
+        return Meta(self.value, self.color, self.coord)
+
+class FlatIterator(object):
+    """This class implements the ndarray.flat-like semantics. """
+    def __init__(self, partition):
+        self.partition = partition
+
+    def __iter__(self):
+        for elt in self.partition.flat:
+            yield elt.value
+
+    def __getitem__(self, index):
+        return self.partition.flat[index].value

@@ -11,9 +11,8 @@ import math
 import numpy as np
 from exceptions import *
 
-from PySide.QtCore import *
-from PySide.QtGui import *
-from PySide.QtOpenGL import *
+from PySide.QtCore import Qt, Signal
+from PySide.QtOpenGL import QGLWidget
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 
@@ -56,17 +55,19 @@ class GLWidget(QGLWidget):
         kwarg("far_plane", 1000.0)  # Far clipping plane
         kwarg("near_plane", 0.1)    # Near clipping plane
 
-        self.translation = np.zeros(3)
-        self.rotation = np.identity(4)
+        self._translation = np.zeros(3)
+        self._rotation = np.identity(4)
 
         # Display list and settings for the axis
         self.axisLength = 0.3
         self.axisList = DisplayList(self._draw_axis)
 
-    def get_translation(self):
+    @property
+    def translation(self):
         return self._translation
 
-    def set_translation(self, t):
+    @translation.setter
+    def translation(self, t):
         """Ensure that translation is always a numpy array."""
         if type(t) == np.ndarray and t.dtype == float:
             self._translation = t
@@ -76,12 +77,12 @@ class GLWidget(QGLWidget):
         if self._translation.shape != (3,):
             raise ValueError("Illegal translation vector: " + str(t))
 
-    translation = property(get_translation, set_translation)
-
-    def get_rotation(self):
+    @property
+    def rotation(self):
         return self._rotation
 
-    def set_rotation(self, r):
+    @rotation.setter
+    def rotation(self, r):
         """Ensure that rotation is always a valid 4x4 numpy array."""
         if type(r) == np.ndarray and r.dtype == float:
             self._rotation = r
@@ -91,7 +92,8 @@ class GLWidget(QGLWidget):
         if self._rotation.shape != (4,4):
             raise ValueError("Illegal rotation matrix: " + str(t))
 
-    rotation = property(get_rotation, set_rotation)
+        self.updateGL()
+
 
     def set_rotation_quaternion(self, angle, x, y, z):
         """ Set the rotation to the identity position rotated angle degrees
@@ -99,9 +101,10 @@ class GLWidget(QGLWidget):
         glPushMatrix()
         glLoadIdentity()
         glRotatef(angle, x, y, z)
-        self.rotation = glGetDouble(GL_MODELVIEW_MATRIX)
+        matrix = glGetDouble(GL_MODELVIEW_MATRIX)
         glPopMatrix()
-        self.updateGL()
+
+        self.rotation = matrix
 
     def map_to_sphere(self, x, y):
         """This takes local x and y window coordinates and maps them to an arcball sphere

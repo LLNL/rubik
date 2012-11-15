@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import sys
-import rubik.rubikview as rv
+import rubik.view as rv
 from rubik import *
 
 if __name__ == "__main__":
@@ -17,4 +17,4 @@ if __name__ == "__main__":
         child.tilt(0, 1, 1)
         child.tilt(0, 2, 1)
 
-    rv.viewbox(q, rotation=(35, .5, 1, .25))
+    rv.viewbox(p, q)
