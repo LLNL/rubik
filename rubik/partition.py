@@ -4,24 +4,24 @@
 # Written by Todd Gamblin et al. <tgamblin@llnl.gov>
 # LLNL-CODE-599252
 # All rights reserved.
-# 
+#
 # This file is part of Rubik. For details, see http://scalability.llnl.gov.
 # Please read the LICENSE file for further information.
-# 
+#
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
-# 
+#
 #     * Redistributions of source code must retain the above copyright notice,
 #       this list of conditions and the disclaimer below.
-# 
+#
 #     * Redistributions in binary form must reproduce the above copyright notice,
 #       this list of conditions and the disclaimer (as noted below) in the
 #       documentation and/or other materials provided with the distribution.
-# 
+#
 #     * Neither the name of the LLNS/LLNL nor the names of its contributors may be
 #       used to endorse or promote products derived from this software without
 #       specific prior written permission.
-# 
+#
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 # ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 # WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -227,6 +227,11 @@ class Partition(object):
         """ Write a map file to the specified stream. By default this writes to
 	sys.stdout.
 	"""
+        # make it easy for folks and open a file for them.
+        if type(stream) == str:
+            stream = open(stream, "w")
+            close = True
+
         if self.parent == None:
             elements = self.elements
         else:
@@ -241,6 +246,9 @@ class Partition(object):
         for elt in elements:
             format = " ".join(["%s"] * len(elt.coord)) + "\n"
             stream.write(format % elt.coord)
+
+        if close:
+            stream.close()
 
     @property
     def xancestors(self):
