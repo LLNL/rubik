@@ -1,10 +1,23 @@
 #!/usr/bin/env python
 
 from distutils.core import setup
+
+# Check dependencies
+try:
+    import numpy
+except:
+    print "WARNING: Rubik requires numpy.  You will need to install numpy for anything to work."
+
+try:
+    import PySide
+    import OpenGL
+except:
+    print "WARNING: To use the rubik.view package for visualizations, you need to install PySide and OpenGL."
+
 setup(name='rubik',
       # Distribution and version information
       version='1.0',
-      py_modules=['rubik'],
+      packages=['rubik', 'rubik.tests'],
 
       # Other metadata
       license='LLNL BSD',

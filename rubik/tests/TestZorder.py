@@ -38,7 +38,7 @@
 from rubik.zorder import *
 import unittest
 
-class TestZorderFunctions(unittest.TestCase):
+class TestZorder(unittest.TestCase):
 
     def encode_and_decode_shape(self, shape):
         """ Construct a Z encoder for the given shape, then run tests on it."""
