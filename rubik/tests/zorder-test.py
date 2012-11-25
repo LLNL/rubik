@@ -35,30 +35,39 @@
 # OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ################################################################################
-
 from rubik.zorder import *
+import unittest
 
-def test_ordering(shape):
-    """ Construct a Z encoder for the given shape, then """
-    zencoder = ZEncoder.for_shape(shape)
-    print zencoder
-    for point in np.ndindex(*shape):
-        code = zencoder.encode(point)
-        decoded = zencoder.decode(code)
-        if point != decoded:
-            raise Exception("Error for code got %s but expected %s for code %s" % (decoded, point, b(code)))
+class TestZorderFunctions(unittest.TestCase):
 
+    def encode_and_decode_shape(self, shape):
+        """ Construct a Z encoder for the given shape, then run tests on it."""
+        zencoder = ZEncoder.for_shape(shape)
+        print zencoder
+        for point in np.ndindex(*shape):
+            code = zencoder.encode(point)
+            decoded = zencoder.decode(code)
+            self.assertEqual(
+                point, decoded,
+                "Error for code got %s but expected %s for code %s" % (decoded, point, b(code)))
+
+    def test_1_dimension(self):
+        self.encode_and_decode_shape([1024])
+
+    def test_2_dimensions(self):
+        self.encode_and_decode_shape([64,32])
+
+    def test_3_dimensions(self):
+        self.encode_and_decode_shape([8,16,32])
+
+    def test_4_dimensions(self):
+        self.encode_and_decode_shape([8,4,32,128])
+
+    def test_5_dimensions(self):
+        self.encode_and_decode_shape([8,4,16,16,32])
+
+    def test_6_dimensions(self):
+        self.encode_and_decode_shape([8,2,8,32,4,4])
 
 if __name__ == "__main__":
-    test_ordering([1024])
-    print "1D passed."
-    test_ordering([64,32])
-    print "2D passed."
-    test_ordering([8,16,32])
-    print "3D passed."
-    test_ordering([8,4,32,128])
-    print "4D passed."
-    test_ordering([8,4,16,16,32])
-    print "5D passed."
-    test_ordering([8,2,8,32,4,4])
-    print "6D passed."
+    unittest.main()
