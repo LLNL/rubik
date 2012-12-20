@@ -4,24 +4,24 @@
 # Written by Todd Gamblin et al. <tgamblin@llnl.gov>
 # LLNL-CODE-599252
 # All rights reserved.
-# 
+#
 # This file is part of Rubik. For details, see http://scalability.llnl.gov.
 # Please read the LICENSE file for further information.
-# 
+#
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
-# 
+#
 #     * Redistributions of source code must retain the above copyright notice,
 #       this list of conditions and the disclaimer below.
-# 
+#
 #     * Redistributions in binary form must reproduce the above copyright notice,
 #       this list of conditions and the disclaimer (as noted below) in the
 #       documentation and/or other materials provided with the distribution.
-# 
+#
 #     * Neither the name of the LLNS/LLNL nor the names of its contributors may be
 #       used to endorse or promote products derived from this software without
 #       specific prior written permission.
-# 
+#
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 # ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 # WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -64,7 +64,8 @@ def box(shape):
 
 def create_bg_shape_executable(exe_name):
     """ Creates an executable that obtains the torus dimensions from the IBM
-    MPIX routines.
+    MPIX routines.  The executable is compiled and placed in the current
+    working directory.
     """
     bg_shape_source = "%s.C" % exe_name
     source_file = open(bg_shape_source, "w")
