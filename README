@@ -13,13 +13,14 @@ Rubik generates mapping files for torus and mesh networks according to
 structured transformations of blocks within the ranks.
 
 Source Code:
-     http://github.com/tgamblin/rubik
+    https://scalability.llnl.gov/performance-analysis-through-visualization/software/rubik/rubik-1.0.tar.gz
+    http://github.com/tgamblin/rubik
 
 Documentation:
-     https://scalability.llnl.gov/performance-analysis-through-visualization/software/rubik/docs
+    https://scalability.llnl.gov/performance-analysis-through-visualization/software/rubik/docs
 
 More information on rubik at LLNL:
-     https://scalability.llnl.gov/performance-analysis-through-visualization/software.php
+    https://scalability.llnl.gov/performance-analysis-through-visualization/software.php
 
 Running Rubik Scripts:
 To use rubik, either add the <distribution>/rubik directory to your PYTHONPATH,
@@ -27,13 +28,13 @@ or just be sure to run scripts in the root directory.  A proper setup.py and
 installation process is forthcoming.
 
 Prerequisites:
-      To generate map files with Rubik, you will need an installation of numpy.
-      To visualize Rubik partitions, you will need PySide (python Qt bindings)
-      and OpenGL for Python.  To build the documentation you will need sphinx.
 
-      You can install all this relatively easily on a mac through MacPorts:
+To generate map files with Rubik, you will need an installation of numpy.  To
+visualize Rubik partitions, you will need PySide (python Qt bindings) and
+OpenGL for Python.  To build the documentation you will need sphinx.
 
-        port install py27-numpy py27-pyside py27-sphinx py27-opengl
+You can install all this relatively easily on a mac through MacPorts:
+    port install py27-numpy py27-pyside py27-sphinx py27-opengl
 
-      For more on installation, see here:
-      http://tgamblin.github.com/rubik/intro.html#install
+For more on installation, see here:
+    https://scalability.llnl.gov/performance-analysis-through-visualization/software/rubik/docs/intro.html#install
