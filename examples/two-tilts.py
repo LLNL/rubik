@@ -11,9 +11,9 @@ for child in t0:
 rv.color(t0)
 
 t1 = t0.copy()
-t1.tilt(X, Z, 1)  # Tilt Z (XY) planes along X
+t1.tilt(X, Z, 1)  # Tilt X (YZ) planes along Z
 
 t2 = t1.copy()
-t2.tilt(Y, Z, 1)  # Tilt X (YZ) planes along Y
+t2.tilt(Y, Z, 1)  # Tilt Y (XZ) planes along Z
 
 rv.viewbox(t0, t1, t2)
