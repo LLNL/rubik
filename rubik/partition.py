@@ -227,6 +227,7 @@ class Partition(object):
         """ Write a map file to the specified stream. By default this writes to
 	sys.stdout.
 	"""
+	close = False
         # make it easy for folks and open a file for them.
         if type(stream) == str:
             stream = open(stream, "w")
