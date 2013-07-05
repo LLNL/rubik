@@ -16,7 +16,7 @@ except:
 
 setup(name='rubik',
       # Distribution and version information
-      version='1.0',
+      version='1.0.1',
       packages=['rubik', 'rubik.tests'],
 
       # Other metadata
