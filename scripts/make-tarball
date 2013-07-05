@@ -1,0 +1,29 @@
+#!/bin/sh
+#
+# Makes a timestamped, commit-stamped archive of the current HEAD,
+# or of a particular version if a version is provided.
+#
+# Assumes versions are tagged with prefix 'v', e.g. 'v1.0.1'.
+#
+# Author: Todd Gamblin
+#
+name=rubik
+
+if [ -n "$1" ]; then
+    label="$1"
+    ref="v$1"
+    prefix="${name}-${label}"
+    if ! git show-ref --tags --quiet --verify -- "refs/tags/$ref"; then
+        echo "No such version: $label"
+        exit 1
+    fi
+else
+    ref=HEAD
+    label=`git log -1 --format="%ct" HEAD | perl -MPOSIX -le 'print strftime "%F", localtime <STDIN>'`
+    head=`git log -1 --format="%h" HEAD`
+    prefix="${name}-${label}-${head}"
+fi
+
+repo_root=$(git rev-parse --show-toplevel)
+cd $repo_root && git archive --format=tar.gz --prefix="${prefix}/" ${ref} -o ${prefix}.tar.gz
+echo "Created $repo_root/${prefix}.tar.gz"
