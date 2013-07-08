@@ -9,6 +9,11 @@
 #
 name=rubik
 
+function die {
+    echo "$1"
+    exit 1
+}
+
 if [ -n "$1" ]; then
     label="$1"
     ref="v$1"
@@ -19,11 +24,24 @@ if [ -n "$1" ]; then
     fi
 else
     ref=HEAD
-    label=`git log -1 --format="%ct" HEAD | perl -MPOSIX -le 'print strftime "%F", localtime <STDIN>'`
-    head=`git log -1 --format="%h" HEAD`
+    label=$(git log -1 --format="%ct" HEAD | perl -MPOSIX -le 'print strftime "%F", localtime <STDIN>')
+    head=$(git log -1 --format="%h" HEAD)
     prefix="${name}-${label}-${head}"
 fi
 
 repo_root=$(git rev-parse --show-toplevel)
-cd $repo_root && git archive --format=tar.gz --prefix="${prefix}/" ${ref} -o ${prefix}.tar.gz
-echo "Created $repo_root/${prefix}.tar.gz"
+tarball=$prefix.tar.gz
+
+if cd $repo_root && git archive --format=tar.gz --prefix="${prefix}/" ${ref} -o "$tarball"; then
+    echo "Created $repo_root/$tarball"
+else
+    die "Failed to create $repo_root/$tarball"
+fi
+
+if $(which -s openssl); then
+    md5_file="$tarball.md5"
+    openssl md5 "$tarball" > "$md5_file"
+    echo "Created $md5_file"
+else
+    die "Could not create md5 hash for $tarball"
+fi
