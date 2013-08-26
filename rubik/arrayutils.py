@@ -4,24 +4,24 @@
 # Written by Todd Gamblin et al. <tgamblin@llnl.gov>
 # LLNL-CODE-599252
 # All rights reserved.
-# 
+#
 # This file is part of Rubik. For details, see http://scalability.llnl.gov.
 # Please read the LICENSE file for further information.
-# 
+#
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
-# 
+#
 #     * Redistributions of source code must retain the above copyright notice,
 #       this list of conditions and the disclaimer below.
-# 
+#
 #     * Redistributions in binary form must reproduce the above copyright notice,
 #       this list of conditions and the disclaimer (as noted below) in the
 #       documentation and/or other materials provided with the distribution.
-# 
+#
 #     * Neither the name of the LLNS/LLNL nor the names of its contributors may be
 #       used to endorse or promote products derived from this software without
 #       specific prior written permission.
-# 
+#
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 # ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 # WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -44,40 +44,40 @@ def data(arr):
     """This gets the address of a numpy array's data buffer."""
     return arr.__array_interface__["data"][0]
 
-def base_corner(view):
-    """Finds index of the (0, 0, ...) element of view within its base."""
-    if view.base == None:
-        raise ValueError("View must have a valid base array.")
+def parent_corner(parent, view):
+    """Finds index of the (0, 0, ...) element of view within its parent."""
+    if view.base is not parent.base and view.base is not parent:
+        raise ValueError("View and parent must be related.")
 
-    offset = data(view) - data(view.base)
+    offset = data(view) - data(parent)
     corner = []
-    for s in view.base.strides:
+    for s in parent.strides:
         corner.append(offset / s)
         offset %= s
     return tuple(corner)
 
 class IndexConverter(object):
     """Given a numpy view and an index into it, this will convert the index in
-    the view to the corresponding index in the base.  Example::
+    the view to the corresponding index in the parent.  Example::
 
-        base = np.empty([4,4])
-        view = base[1::2, 1::2]
+        parent = np.empty([4,4])
+        view = parent[1::2, 1::2]
         ic = IndexConverter(view)
 
-        print ic.view_to_base((0,0))
+        print ic.view_to_parent((0,0))
         (1,1)
 
-        print ic.base_to_view((1,1))
+        print ic.parent_to_view((1,1))
         (0,0)
     """
-    def __init__(self, view):
-        self.corner = base_corner(view)
-        self.scale = [v / b for v, b in zip(view.strides, view.base.strides)]
+    def __init__(self, parent, view):
+        self.corner = parent_corner(parent, view)
+        self.scale = [v / b for v, b in zip(view.strides, parent.strides)]
 
-    def view_to_base(self, index):
+    def view_to_parent(self, index):
         return tuple([c + i * s for c,i,s in zip(self.corner, index, self.scale)])
 
-    def base_to_view(self, index):
+    def parent_to_view(self, index):
         return tuple([(i - c) / s for c,i,s in zip(self.corner, index, self.scale)])
 
 

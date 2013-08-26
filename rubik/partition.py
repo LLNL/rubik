@@ -107,13 +107,13 @@ class Partition(object):
     # === Index conversion routines ====================================
     def parent_to_self(self, index):
         if not self.iconv:
-            self.iconv = IndexConverter(self.box)
-        return self.iconv.base_to_view(index)
+            self.iconv = IndexConverter(self.parent.box, self.box)
+        return self.iconv.parent_to_view(index)
 
     def self_to_parent(self, index):
         if not self.iconv:
-            self.iconv = IndexConverter(self.box)
-        return self.iconv.view_to_base(index)
+            self.iconv = IndexConverter(self.parent.box, self.box)
+        return self.iconv.view_to_parent(index)
 
     # === Partitioning routines ========================================
     def div(self, divisors):
@@ -132,7 +132,8 @@ class Partition(object):
 	""" Cuts this partition into a set of views, and make children out of
 	them. See cut().
 	"""
-        views = cut(self.box, divisors, slicers)   # Get an array of all the subpartitions (views)
+        # Get an array of all the subpartitions (views)
+        views = cut(self.box, divisors, slicers)
 
         assert(all(view.base != None for view in views))
 
