@@ -119,10 +119,13 @@ class Partition(object):
     def div(self, divisors):
         self.cut(divisors, div)
 
-    def tile(self, tiles):
-	divisors = [0]*len(tiles)
-	for i in range(len(tiles)):
-	    divisors[i] = self.box.shape[i] / tiles[i]
+    def tile(self, tile_dims):
+        padding = [1] * max(0, self.box.ndim - len(tile_dims))
+        tile_dims += padding
+
+	divisors = [0]*len(tile_dims)
+	for i in range(len(tile_dims)):
+	    divisors[i] = self.box.shape[i] / tile_dims[i]
         self.cut(divisors, div)
 
     def mod(self, divisors):
@@ -187,11 +190,11 @@ class Partition(object):
     def leaves(self):
       """ Return all leaves for a partition. """
       if self.children.size:
-	for child in self.children.flat:
-	  for leaf in child.leaves():
-	    yield leaf
+          for child in self.children.flat:
+              for leaf in child.leaves():
+                  yield leaf
       else:
-	yield self
+          yield self
 
     def map(self, other):
 	""" Map the other partition onto this one. First checks if partition
