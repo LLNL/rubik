@@ -190,8 +190,8 @@ def tilt(arr, axis, direction, slope = 1):
     is the same as shearing a set of perpendicular [hyper]planes (YZ or XZ
     respectively) along the perpendicular (Z). In other words,
 
-    tile(0, 2, slope) = shear(2, 0, slope)
-    tile(0, 1, slope) = shear(1, 0, slope)
+    tilt(0, 2, slope) = shear(2, 0, slope)
+    tilt(0, 1, slope) = shear(1, 0, slope)
     """
     # 'axis' is the subtracted dimension and hence cannot tilt in that dimension
     if axis == direction:
