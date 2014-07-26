@@ -203,7 +203,14 @@ class Partition(object):
 	myleaves = [x for x in self.leaves()]
 	otherleaves = [x for x in other.leaves()]
 	if len(myleaves) != len(otherleaves):
-	    raise Exception("Error: Partitions are not compatible")
+	    raise ValueError(
+                "Attempted to map %d-leaf partition onto %d-leaf partition."
+                % (len(otherleaves), len(myleaves)))
+
+        if self.size != other.size:
+            raise ValueError(
+                "Attempted to map size %d partition onto size %d partition."
+                % (other.size, self.size))
 
         # Need to copy Meta objects between partitions (metadata is separate).
         copies = dict((e, e.copy()) for e in other.box.flat)
