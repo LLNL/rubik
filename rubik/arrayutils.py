@@ -227,3 +227,26 @@ def zigzag(arr, axis, direction, depth = 1, stride=1):
         shift = depth-(abs(i-base)*depth)/stride
         plane = hyperplane(arr, direction, i)
         plane.flat = np.roll(plane, shift, axis=axis).flat
+
+
+def tilt_cont(arr, slope = 1):
+
+    for i in xrange(0, (arr.ndim)-1):
+        axis, direction = i, i+1
+        for j in xrange(1, arr.shape[direction]):
+            plane = hyperplane(arr, direction, j)
+            plane.flat = np.roll(plane, j * slope, axis=axis).flat
+    axis, direction = i, 0
+    for j in xrange(1, arr.shape[direction]):
+        plane = hyperplane(arr, direction, j)
+        plane.flat = np.roll(plane, j * slope, axis=axis).flat
+
+
+def tilt_combi(arr, slope = 1):
+
+    num_dim = np.arange(arr.ndim)
+    for axis, direction in itertools.combinations(num_dim, 2):
+        for j in xrange(1, arr.shape[direction]):
+            plane = hyperplane(arr, direction, j)
+            plane.flat = np.roll(plane, j * slope, axis=axis).flat   
+
