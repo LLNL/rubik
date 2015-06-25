@@ -172,12 +172,12 @@ class Partition(object):
 
 
     def tilt_cont(self, slope):
-    """ Tilts the hyperplanes defined by axis and in all directions in cyclic order."""
-        tilt_cont(self.box, slope)
+    	#    """ Tilts the hyperplanes defined by axis and in all directions in cyclic order."""
+    	tilt_cont(self.box, slope)
 
     def tilt_combi(self, slope):
-    """ Tilts the hyperplanes for every combination of axis and directions."""
-        tilt_combi(self.box, slope)
+    	#    """ Tilts the hyperplanes for every combination of axis and directions."""
+    	tilt_combi(self.box, slope)
 
 
     def zigzag(self, axis, direction, depth, stride):
@@ -186,9 +186,9 @@ class Partition(object):
 	"""
         zigzag(self.box, axis, direction, depth, stride)
 
-    def zorder(self):
+    def zorder(self, proc):
         """ Reorder the processes in this box in z order. """
-        zorder.zorder(self.box)
+        zorder.zorder(self.box, proc)
 
     # === Other Operations =============================================
     def depth(self):
