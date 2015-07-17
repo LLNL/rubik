@@ -197,3 +197,35 @@ def autobox(**kwargs):
 
     dims.append(tasks_per_node)
     return box(dims)
+
+
+
+def box_cray(shape):
+    """ Constructs the top-level partition, with the original numpy array and a
+    process list running through it. Same working as box.
+    """
+    size = np.product(shape)
+    return Partition.fromlist(shape, [Process(i) for i in xrange(size)])
+
+def create_executable():
+        if subprocess.call(["cc", "Topology.c", "-o", "topology"]) != 0:
+                raise Exception("Unable to compile Topology executable!")
+
+def autobox_cray(**kwargs):
+        """ This obtains the dimensions of the partition and available coordinates are discovered.
+        """
+        numpes = kwargs['numpes']
+        create_executable()
+        subprocess.call(["aprun", "-n", numpes, "./topology", numpes])
+
+        f = open("Topology.txt", "r")
+        dims = f.readline().rstrip('\n').split("x")
+        dims = [int(i) for i in dims]
+        check_coord = np.ones((int(dims[0]), int(dims[1]), int(dims[2]), int(dims[3])))
+        check_coord *= -1
+        for line in f:
+                p, n, x, y, z, t = line.split()
+                check_coord[int(x)][int(y)][int(z)][int(t)] = p
+        f.close()
+        return box_cray(dims), check_coord
+
