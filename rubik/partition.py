@@ -186,9 +186,9 @@ class Partition(object):
 	"""
         zigzag(self.box, axis, direction, depth, stride)
 
-    def zorder(self, proc):
+    def zorder(self):
         """ Reorder the processes in this box in z order. """
-        zorder.zorder(self.box, proc)
+        zorder.zorder(self.box)
 
     # === Other Operations =============================================
     def depth(self):
@@ -261,6 +261,52 @@ class Partition(object):
 
         if close:
             stream.close()
+
+
+    def assign_coordinates_cray(self, big_box, big_torus, type1 = 'zorder'):
+        """ Assigns the elements their coordinates as per actual cray grid in the user specified order.
+        """
+        buffer = []
+        if type1 == "zorder":
+            big_torus.zorder()
+                for i in np.ndindex(big_torus.box.shape):
+                    if big_box[i] != -1:
+                        buffer.append(i)
+
+        if type1 == "row_order":
+            for i_big in np.ndindex(big_box.shape):
+                    if big_box[i_big] != -1:
+                        buffer.append(i_big)
+
+        i = 0
+        for index in np.ndindex(self.box.shape):
+            self.box[index].coord = buffer[i]
+                i += 1
+
+
+    def write_map_cray(self, big_box, big_torus, type1 = 'zorder', stream=sys.stdout):
+        """ Writes a map file for cray machines to a specified stream.
+        """
+        close = False
+        if type(stream) == str:
+            stream = open(stream, "w")
+            close = True
+
+        if self.parent == None:
+            elements = self.elements
+        else:
+            my_elts = set(self.box.flat)
+            elements = ifilter(my_elts.__contains__, self.root.elements)
+
+        self.assign_coordinates_cray(big_box, big_torus, type1)
+        for elt in elements:
+            format = " ".join(["%s"] * len(elt.coord)) + "\n"
+            stream.write(format % elt.coord)
+
+        if close:
+            stream.close()
+
+
 
     @property
     def xancestors(self):
