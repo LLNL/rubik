@@ -72,20 +72,20 @@ void main(int argc, char *argv[])
   int myRank;
   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 
-  if(!myRank) {
+  if(!myRank) { // Only master node do the following mapping work.
         fp = fopen("Topology.txt", "w");
         int nid,i,j,k,l,lx=0,ly=0,lz=0,xdim,ydim,zdim,maxnid;
         int numpes = atoi(argv[1]);
         coord *details;
         int ****coords2pid;
         int *pid2nid;
-        int numCores = 2*sysconf(_SC_NPROCESSORS_ONLN);
+        int numCores = 2*sysconf(_SC_NPROCESSORS_ONLN); // 2 times of _SC_NPROCESSORS_ONLN
 
         pid2nid = (int *)malloc(sizeof(int) * numpes);
         pidtonid(numpes, pid2nid);
         getDimension(&maxnid, &xdim, &ydim, &zdim);
 
-        fprintf(fp, "%d x %d x %d x %d \n", xdim, ydim, zdim, numCores);
+        fprintf(fp, "%d x %d x %d x %d \n", xdim, ydim, zdim, numCores); // 
 
         details = (coord *)malloc(numpes*sizeof(coord));
 

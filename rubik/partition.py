@@ -269,9 +269,9 @@ class Partition(object):
         buffer = []
         if type1 == "zorder":
             big_torus.zorder()
-                for i in np.ndindex(big_torus.box.shape):
-                    if big_box[i] != -1:
-                        buffer.append(i)
+            for i in np.ndindex(big_torus.box.shape):
+              if big_box[i] != -1:
+                buffer.append(i)
 
         if type1 == "row_order":
             for i_big in np.ndindex(big_box.shape):
@@ -281,7 +281,7 @@ class Partition(object):
         i = 0
         for index in np.ndindex(self.box.shape):
             self.box[index].coord = buffer[i]
-                i += 1
+            i += 1
 
 
     def write_map_cray(self, big_box, big_torus, type1 = 'zorder', stream=sys.stdout):
