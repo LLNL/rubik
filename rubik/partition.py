@@ -189,7 +189,9 @@ class Partition(object):
     def zorder(self):
         """ Reorder the processes in this box in z order. """
         zorder.zorder(self.box)
-
+    
+    def zorder_cray(self):
+        return zorder.zenumerate(self.box.shape)
     # === Other Operations =============================================
     def depth(self):
         return 1 + max([child.depth() for child in self.children.flat] + [0])
@@ -268,17 +270,28 @@ class Partition(object):
         """
         buffer = []
         if type1 == "zorder":
-            big_torus.zorder()
-            for i in np.ndindex(big_torus.box.shape):
-              if big_box[i] != -1:
-                buffer.append(i)
+            zorderedIndex = big_torus.zorder_cray()
+            print "big_torus shape"+(str)(big_torus.box.shape)
+#            print big_torus
+            for i in zorderedIndex: #np.ndindex(big_torus.box.shape):
+#                print i
+                if big_box[i] != -1:
+                    temp = i+(int(big_box[i][0]),int(big_box[i][1]))
+                    buffer.append(temp)
 
         if type1 == "row_order":
             for i_big in np.ndindex(big_box.shape):
-                    if big_box[i_big] != -1:
-                        buffer.append(i_big)
+#                print i_big
+                if big_box[i_big] != -1:
+                    temp = i_big+(int(big_box[i_big][0]), int(big_box[i_big][1]))
+                    buffer.append(temp)
+
+        if type1 == "block_order":
+          print "block_order"
 
         i = 0
+#        print "torus shape" + (str)(self.box.shape)
+#        print buffer
         for index in np.ndindex(self.box.shape):
             self.box[index].coord = buffer[i]
             i += 1
@@ -288,6 +301,9 @@ class Partition(object):
         """ Writes a map file for cray machines to a specified stream.
         """
         close = False
+        
+        rankReorderFile = open("MPICH_RANK_ORDER", "w")
+        rankReorderBuffer = []
         if type(stream) == str:
             stream = open(stream, "w")
             close = True
@@ -299,10 +315,14 @@ class Partition(object):
             elements = ifilter(my_elts.__contains__, self.root.elements)
 
         self.assign_coordinates_cray(big_box, big_torus, type1)
+
         for elt in elements:
             format = " ".join(["%s"] * len(elt.coord)) + "\n"
             stream.write(format % elt.coord)
-
+            rankReorderBuffer.append(elt.coord[len(elt.coord)-2])
+#        print rankReorderBuffer
+        rankReorderFile.write(",".join(map(str,rankReorderBuffer)))
+        rankReorderFile.close()
         if close:
             stream.close()
 

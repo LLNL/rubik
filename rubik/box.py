@@ -215,17 +215,19 @@ def autobox_cray(**kwargs):
         """ This obtains the dimensions of the partition and available coordinates are discovered.
         """
         numpes = kwargs['numpes']
-        create_executable()
-        subprocess.call(["aprun", "-n", numpes, "./topology", numpes])
+#        create_executable()
+#       subprocess.call(["aprun", "-n", numpes, "./topology", numpes])
 
         f = open("Topology.txt", "r")
         dims = f.readline().rstrip('\n').split("x")
         dims = [int(i) for i in dims]
-        check_coord = np.ones((int(dims[0]), int(dims[1]), int(dims[2]), int(dims[3])))
+        check_coord = np.ones((int(dims[0]), int(dims[1]), int(dims[2]), int(dims[3])),dtype=object)
         check_coord *= -1
         for line in f:
                 p, n, x, y, z, t = line.split()
-                check_coord[int(x)][int(y)][int(z)][int(t)] = p
+                check_coord[int(x)][int(y)][int(z)][int(t)] = [p,n];
+#                check_coord[int(x)][int(y)][int(z)][int(t)][1] = n;
+
         f.close()
         return box_cray(dims), check_coord
 

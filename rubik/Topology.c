@@ -79,15 +79,15 @@ void main(int argc, char *argv[])
         coord *details;
         int ****coords2pid;
         int *pid2nid;
-        int numCores = 2*sysconf(_SC_NPROCESSORS_ONLN); // 2 times of _SC_NPROCESSORS_ONLN
+        int numCores = 2*sysconf(_SC_NPROCESSORS_ONLN); // 2 times of _SC_NPROCESSORS_ONLN because each physical position can have 2 nodes in it.
 
         pid2nid = (int *)malloc(sizeof(int) * numpes);
         pidtonid(numpes, pid2nid);
         getDimension(&maxnid, &xdim, &ydim, &zdim);
 
-        fprintf(fp, "%d x %d x %d x %d \n", xdim, ydim, zdim, numCores); // 
+        fprintf(fp, "%d x %d x %d x %d \n", xdim, ydim, zdim, numCores); //maximum dimensions of Bluewaters 
 
-        details = (coord *)malloc(numpes*sizeof(coord));
+        details = (coord *)malloc(numpes*sizeof(coord)); //matrix containing 
 
         coords2pid = (int ****)malloc(xdim*sizeof(int***));
         for(i=0; i<xdim; i++) {

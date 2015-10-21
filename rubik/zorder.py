@@ -214,7 +214,7 @@ class ZEncoder(object):
         return self.bin_str()
 
 
-def zenumerate(shape, proc):
+def zenumerate(shape):#, proc):
     """ Enumerates points in the shape in Z order. Currently dumps the morton
     codes into an array and sorts them, then regenerates points in that
     order. This is O(nlogn) time. We could do better for matrices with more
@@ -225,9 +225,9 @@ def zenumerate(shape, proc):
     zencoder = ZEncoder.for_shape(shape)
     buffer = []
     for point in np.ndindex(*shape):
-        if proc == 1:
-            if Check_if_available(point) == -1:
-                continue
+#        if proc == 1:
+#           if Check_if_available(point) == -1:
+#               continue
         buffer.append(zencoder.encode(point))
     buffer.sort()
 
@@ -236,16 +236,15 @@ def zenumerate(shape, proc):
         yield zencoder.decode(code)
 
 
-def zorder(arr, proc):
+def zorder(arr):#, proc):
     """ Transform the elements of an ndarray from dimension-major order to z
     order. This modifies the array.
     """
     buffer = arr.copy()
     i=0
-    for index in zenumerate(arr.shape, proc):
+    for index in zenumerate(arr.shape):#, proc):
         arr[index] = buffer.flat[i]
         i += 1
-
 
 def Check_if_available(point):
     """Checks if the processor is available for mapping. Returns -1 if the processor is not available for mapping.
