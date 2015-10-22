@@ -41,11 +41,12 @@ import zorder
 import sys
 import pickle
 import numpy as np
+
 from contextlib import closing
 from arrayutils import *
 from itertools import ifilter
 from collections import deque
-
+from operator import itemgetter
 class Partition(object):
     """ Tree of views of an initial Box. Each successive level is a set of
     views of the top-level box.
@@ -278,12 +279,13 @@ class Partition(object):
                 if big_box[i] != -1:
                     temp = i+(int(big_box[i][0]),int(big_box[i][1]))
                     buffer.append(temp)
-
-        if type1 == "row_order":
-            for i_big in np.ndindex(big_box.shape):
+        elif type1 == "row_order":
+            print big_box.shape
+            for i_big in np.ndindex(big_box.shape):                
 #                print i_big
                 if big_box[i_big] != -1:
                     temp = i_big+(int(big_box[i_big][0]), int(big_box[i_big][1]))
+                    print i_big
                     buffer.append(temp)
 
         if type1 == "block_order":
@@ -291,11 +293,18 @@ class Partition(object):
 
         i = 0
 #        print "torus shape" + (str)(self.box.shape)
-#        print buffer
-        for index in np.ndindex(self.box.shape):
-            self.box[index].coord = buffer[i]
+        print buffer
+        #sortedIndex =  sorted(np.ndindex(self.box.shape),key=itemgetter(2,1))
+#        print sortedIndex
+        for elt in self.elements: #np.ndindex(self.box.shape):
+            temp = elt.coord
+            elt.coord = buffer[i]
+            self.box[temp] = elt
+#           print index, buffer[i]
+#            self.box[index].coord = buffer[i]
             i += 1
-
+#        self.elements = self.box.flat
+#        print self.box
 
     def write_map_cray(self, big_box, big_torus, type1 = 'zorder', stream=sys.stdout):
         """ Writes a map file for cray machines to a specified stream.
@@ -317,6 +326,7 @@ class Partition(object):
         self.assign_coordinates_cray(big_box, big_torus, type1)
 
         for elt in elements:
+            print elt.coord
             format = " ".join(["%s"] * len(elt.coord)) + "\n"
             stream.write(format % elt.coord)
             rankReorderBuffer.append(elt.coord[len(elt.coord)-2])
