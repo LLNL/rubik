@@ -38,6 +38,7 @@
 This file defines the hierarchical Partition class in Rubik.
 """
 import zorder
+import gridOrder
 import sys
 import pickle
 import numpy as np
@@ -198,13 +199,13 @@ class Partition(object):
         return 1 + max([child.depth() for child in self.children.flat] + [0])
 
     def leaves(self):
-      """ Return all leaves for a partition. """
-      if self.children.size:
-	for child in self.children.flat:
-	  for leaf in child.leaves():
-	    yield leaf
-      else:
-	yield self
+        """ Return all leaves for a partition. """
+        if self.children.size:
+          for child in self.children.flat:
+            for leaf in child.leaves():
+              yield leaf
+        else:
+          yield self
 
     def map(self, other):
 	""" Map the other partition onto this one. First checks if partition
@@ -222,14 +223,14 @@ class Partition(object):
 	    leaf.box.flat = [copies[o] for o in otherleaf.box.flat]
 
     def compatible(self, other):
-	""" True if and only if other can be mapped to self.  This is true
-        if the leaves of self have the same order, number, and size as
-        the leaves of self."""
-	myleaves = [x for x in self.leaves()]
-	otherleaves = [x for x in other.leaves()]
-	if len(myleaves) != len(otherleaves):
-	    return false
-        return all(m.size == o.size for m, o in zip(myleaves, otherleaves))
+        """ True if and only if other can be mapped to self.  This is true
+            if the leaves of self have the same order, number, and size as
+            the leaves of self."""
+        myleaves = [x for x in self.leaves()]
+        otherleaves = [x for x in other.leaves()]
+        if len(myleaves) != len(otherleaves):
+            return false
+            return all(m.size == o.size for m, o in zip(myleaves, otherleaves))
 
 
     def assign_coordinates(self):
@@ -241,7 +242,7 @@ class Partition(object):
         """ Write a map file to the specified stream. By default this writes to
 	sys.stdout.
 	"""
-	close = False
+        close = False
         # make it easy for folks and open a file for them.
         if type(stream) == str:
             stream = open(stream, "w")
@@ -266,13 +267,13 @@ class Partition(object):
             stream.close()
 
 
-    def assign_coordinates_cray(self, big_box, big_torus, type1 = 'zorder'):
-        """ Assigns the elements their coordinates as per actual cray grid in the user specified order.
+    def assign_coordinates_cray(self, big_box, big_torus, type1 = 'zorder', dimVector=None):
+        """ Assigns the elements their coordinates as per actual cray grid in the user specified order. -> In this function, the coordinates are ordered in the speicifed method by the user such as z-order, row order and grid-order. 
         """
         buffer = []
         if type1 == "zorder":
             zorderedIndex = big_torus.zorder_cray()
-            print "big_torus shape"+(str)(big_torus.box.shape)
+#            print "big_torus shape"+(str)(big_torus.box.shape)
 #            print big_torus
             for i in zorderedIndex: #np.ndindex(big_torus.box.shape):
 #                print i
@@ -280,39 +281,53 @@ class Partition(object):
                     temp = i+(int(big_box[i][0]),int(big_box[i][1]))
                     buffer.append(temp)
         elif type1 == "row_order":
-            print big_box.shape
+#            print big_box.shape
             for i_big in np.ndindex(big_box.shape):                
 #                print i_big
                 if big_box[i_big] != -1:
                     temp = i_big+(int(big_box[i_big][0]), int(big_box[i_big][1]))
                     print i_big
                     buffer.append(temp)
-
-        if type1 == "block_order":
-          print "block_order"
+        elif type1 == "grid_order": # this mapping is not complete
+            for i_big in np.ndindex(big_box.shape):
+              if big_box[i_big] != -1:
+                 temp = i_big+(int(big_box[i_big][0]), int(big_box[i_big][1]))
+                 print i_big
+            for j in buffer:
+                print "grid_order"
 
         i = 0
 #        print "torus shape" + (str)(self.box.shape)
-        print buffer
-        #sortedIndex =  sorted(np.ndindex(self.box.shape),key=itemgetter(2,1))
-#        print sortedIndex
+#        print buffer
+
         for elt in self.elements: #np.ndindex(self.box.shape):
             temp = elt.coord
-            elt.coord = buffer[i]
+            elt.coord = elt.coord + (i,) # buffer[i]
+#            print i
             self.box[temp] = elt
-#           print index, buffer[i]
-#            self.box[index].coord = buffer[i]
             i += 1
-#        self.elements = self.box.flat
-#        print self.box
+        return buffer
 
-    def write_map_cray(self, big_box, big_torus, type1 = 'zorder', stream=sys.stdout):
+
+    def write_map_cray(self, big_box, big_torus, type1 = 'zorder', stream=sys.stdout, dimVector=None):
         """ Writes a map file for cray machines to a specified stream.
         """
         close = False
-        
+        """ Write mpi ranks into this custom rank order file so that a mpi application can be executed using this file"""       
+
         rankReorderFile = open("MPICH_RANK_ORDER", "w")
         rankReorderBuffer = []
+  
+        if self.parent != None:
+            print "this partition is not root box, write_map_cray only can be applied to a root partition"
+            sys.exit()
+
+        if type1 == 'grid_order':
+           checkResult = gridOrder.grid_vector_check(dimVector, self.box.shape)
+           if checkResult[0] == False:
+              print checkResult[1]
+              sys.exit()
+ 
         if type(stream) == str:
             stream = open(stream, "w")
             close = True
@@ -323,20 +338,30 @@ class Partition(object):
             my_elts = set(self.box.flat)
             elements = ifilter(my_elts.__contains__, self.root.elements)
 
-        self.assign_coordinates_cray(big_box, big_torus, type1)
+        self.assign_coordinates() #assign coordinates in a logical torus box
+        buffer = self.assign_coordinates_cray(big_box, big_torus, type1, dimVector) #buffer the physical coordinates in the real torus network in the specified order such as z-order, row-order and grid-order
+        temp_coords = []
 
-        for elt in elements:
-            print elt.coord
-            format = " ".join(["%s"] * len(elt.coord)) + "\n"
-            stream.write(format % elt.coord)
-            rankReorderBuffer.append(elt.coord[len(elt.coord)-2])
-#        print rankReorderBuffer
+        #the followings are for mapping the logical coordinates into the physical coordinates in the real torus network with holes such as BlueWaters. 
+
+        for elt in elements: ##first collects logical orders in a temporary list. These coordinates are determined by the user specified partitioning and transformations. 
+            format = " ".join(["%s"] * len(elt.coord)) # + "\n"
+            temp_coords.append(elt.coord)
+        i=0
+        finalResult = []
+        print sorted(temp_coords)#,key=itemgetter(0,1,2)) ## sort the coordinates in a logical box because they are ordered by the user specified partitioning and transformations. 
+        for coord in sorted(temp_coords):#,key=itemgetter(0,1,2)):#, key=itemgetter(2,1,0)):
+            finalResult.append(coord + buffer[i]) ## each coordinates in the sorted logical box starting from (0, 0, 0) to (n, n, n) are mapped to each coordintates in the real torus network in the order specified by the user with the type1 variable. 
+            i+=1
+
+        for finalCoord in sorted(finalResult, key=itemgetter(len(self.box.shape))):
+            format = " ".join(["%s"] * len(finalCoord))  + "\n"
+            stream.write(format % finalCoord)
+            rankReorderBuffer.append(finalCoord[len(finalCoord)-2])#write the final order of mpi ranks in to map_file and MPICH_ORDER_FILE so that mpi applications could run with this mapping. 
         rankReorderFile.write(",".join(map(str,rankReorderBuffer)))
         rankReorderFile.close()
         if close:
             stream.close()
-
-
 
     @property
     def xancestors(self):
