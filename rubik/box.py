@@ -215,9 +215,9 @@ def autobox_cray(**kwargs):
         """ This obtains the dimensions of the partition and available coordinates are discovered.
         """
         numpes = kwargs['numpes']
-#        create_executable()
-#       subprocess.call(["aprun", "-n", numpes, "./topology", numpes])
-
+        create_executable()
+        subprocess.call(["aprun", "-n", numpes, "./topology", numpes])
+#        print "Aprun is called"
         f = open("Topology.txt", "r")
         dims = f.readline().rstrip('\n').split("x")
         dims = [int(i) for i in dims]

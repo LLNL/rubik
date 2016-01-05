@@ -38,7 +38,7 @@
 This file defines the hierarchical Partition class in Rubik.
 """
 import zorder
-import gridOrder
+#import gridOrder
 import sys
 import pickle
 import numpy as np
@@ -362,6 +362,7 @@ class Partition(object):
         rankReorderFile.close()
         if close:
             stream.close()
+        return rankReorderBuffer
 
     @property
     def xancestors(self):
