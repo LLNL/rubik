@@ -38,7 +38,6 @@
 This file defines the hierarchical Partition class in Rubik.
 """
 import zorder
-#import gridOrder
 import sys
 import pickle
 import numpy as np
@@ -273,20 +272,14 @@ class Partition(object):
         buffer = []
         if type1 == "zorder":
             zorderedIndex = big_torus.zorder_cray()
-#            print "big_torus shape"+(str)(big_torus.box.shape)
-#            print big_torus
             for i in zorderedIndex: #np.ndindex(big_torus.box.shape):
-#                print i
                 if big_box[i] != -1:
                     temp = i+(int(big_box[i][0]),int(big_box[i][1]))
                     buffer.append(temp)
         elif type1 == "row_order":
-#            print big_box.shape
             for i_big in np.ndindex(big_box.shape):                
-#                print i_big
                 if big_box[i_big] != -1:
                     temp = i_big+(int(big_box[i_big][0]), int(big_box[i_big][1]))
-                    print i_big
                     buffer.append(temp)
         elif type1 == "grid_order": # this mapping is not complete
             for i_big in np.ndindex(big_box.shape):
@@ -297,13 +290,10 @@ class Partition(object):
                 print "grid_order"
 
         i = 0
-#        print "torus shape" + (str)(self.box.shape)
-#        print buffer
 
         for elt in self.elements: #np.ndindex(self.box.shape):
             temp = elt.coord
             elt.coord = elt.coord + (i,) # buffer[i] #
-#            print i
             self.box[temp] = elt
             i += 1
         return buffer
@@ -349,8 +339,7 @@ class Partition(object):
             temp_coords.append(elt.coord)
         i=0
         finalResult = []
-        print sorted(temp_coords)#,key=itemgetter(0,1,2)) ## sort the coordinates in a logical box because they are ordered by the user specified partitioning and transformations. 
-        for coord in sorted(temp_coords):#,key=itemgetter(0,1,2)):#, key=itemgetter(2,1,0)):
+        for coord in sorted(temp_coords):# sort the coordinates in a logical box because they are ordered by the user specified partitioning and transformations. 
             finalResult.append(coord + buffer[i]) ## each coordinates in the sorted logical box starting from (0, 0, 0) to (n, n, n) are mapped to each coordintates in the real torus network in the order specified by the user with the type1 variable. 
             i+=1
 
