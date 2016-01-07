@@ -302,7 +302,7 @@ class Partition(object):
 
         for elt in self.elements: #np.ndindex(self.box.shape):
             temp = elt.coord
-            elt.coord = elt.coord + (i,) # buffer[i]
+            elt.coord = elt.coord + (i,) # buffer[i] #
 #            print i
             self.box[temp] = elt
             i += 1
@@ -357,8 +357,9 @@ class Partition(object):
         for finalCoord in sorted(finalResult, key=itemgetter(len(self.box.shape))):
             format = " ".join(["%s"] * len(finalCoord))  + "\n"
             stream.write(format % finalCoord)
-            rankReorderBuffer.append(finalCoord[len(finalCoord)-2])#write the final order of mpi ranks in to map_file and MPICH_ORDER_FILE so that mpi applications could run with this mapping. 
-        rankReorderFile.write(",".join(map(str,rankReorderBuffer)))
+            rankReorderBuffer.append((finalCoord[len(self.box.shape)], finalCoord[len(finalCoord)-2]))#write the final order of mpi ranks in to map_file and MPICH_ORDER_FILE so that mpi applications could run with this mapping. 
+        rankReorderBuffer = zip(*sorted(rankReorderBuffer, key=itemgetter(1)))
+        rankReorderFile.write(",".join(map(str,rankReorderBuffer[0])))
         rankReorderFile.close()
         if close:
             stream.close()
