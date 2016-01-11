@@ -34,4 +34,4 @@ You can install all this relatively easily on a mac through MacPorts:
 
     port install py27-numpy py27-pyside py27-sphinx py27-opengl
 
-For more on installation, see [the installation docs](https://scalability.llnl.gov/performance-analysis-through-visualization/software/rubik/docs/intro.html#install).
+For more on installation, see [the installation docs](https://computation.llnl.gov/project/performance-analysis-through-visualization/software/rubik/docs/intro.html#install).
