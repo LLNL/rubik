@@ -1,6 +1,5 @@
-================================================================================
- Rubik v1.0.1
-================================================================================
+Rubik v1.0.1
+============
 
 Author:
   Todd Gamblin tgamblin@llnl.gov
@@ -14,7 +13,7 @@ structured transformations of blocks within the ranks.
 
 Source Code:
     https://scalability.llnl.gov/performance-analysis-through-visualization/software/rubik/rubik-1.0.tar.gz
-    http://github.com/tgamblin/rubik
+    http://github.com/llnl/rubik
 
 Documentation:
     https://scalability.llnl.gov/performance-analysis-through-visualization/software/rubik/docs
@@ -27,7 +26,7 @@ To use rubik, either add the <distribution>/rubik directory to your PYTHONPATH,
 or just be sure to run scripts in the root directory.  A proper setup.py and
 installation process is forthcoming.
 
-Prerequisites:
+## Prerequisites
 
 To generate map files with Rubik, you will need an installation of numpy.  To
 visualize Rubik partitions, you will need PySide (python Qt bindings) and
