@@ -15,7 +15,7 @@ To learn more about Rubik, you might be interested in the [Source Code for Rubik
 along with the [documentation](https://computation.llnl.gov/project/performance-analysis-through-visualization/software/rubik/docs/index.html),
 and or the [project webpage](https://computation.llnl.gov/project/performance-analysis-through-visualization/software.php#PAVESoftware-Rubik).
 
-### Running Rubik Scripts:
+### Running Rubik Scripts
 
 To use rubik, either add the `<distribution>/rubik` directory to your
 `PYTHONPATH`, or just be sure to run scripts in the root directory.  A proper
