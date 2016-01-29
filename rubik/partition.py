@@ -363,7 +363,7 @@ class Partition(object):
         rankReorderFile.close()
         if close:
             stream.close()
-        return rankReorderBuffer
+        return rankReorderBuffer[0]
 
     @property
     def xancestors(self):
