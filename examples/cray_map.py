@@ -12,7 +12,7 @@ app = box_cray([8,8])
 big_torus, big_box = autobox_cray(numpes="64")
 
 torus = box_cray([4, 4, 4])
-type1 = 'zorder'
+type1 = 'rcb_order'
 
 torus.map(app)
 torus.tilt(0,1,2)

@@ -47,6 +47,9 @@ from arrayutils import *
 from itertools import ifilter
 from collections import deque
 from operator import itemgetter
+from pyprimes import awful
+from pyprimes import factors as fact
+from pyprimes import strategic
 class Partition(object):
     """ Tree of views of an initial Box. Each successive level is a set of
     views of the top-level box.
@@ -265,6 +268,42 @@ class Partition(object):
         if close:
             stream.close()
 
+    def recursive_partitioning(self, big_box, num_pes, factors, direction): # recursive partiton by factors of the given numpes 
+        "sort big_box in 'direction'"
+
+        direction = (direction +1) % 3
+        big_box = sorted(big_box, key=itemgetter(direction))
+        temp = []
+        big_box = [big_box]
+#        print 'big_box'
+#        print big_box
+        j=0
+        finalResult = []
+        for fact in factors:
+#        fact = factors[0]
+            for partition in big_box:
+                for i in range(0, num_pes, num_pes/fact):
+                    if num_pes/fact == 1:
+                        finalResult.append(partition[i:i+num_pes/fact][0])
+                    else:
+                        temp.append(partition[i:(i+num_pes/fact)]) # splitting
+                print("i : %d, fact : %d\n") % (i, fact)
+#               print temp
+#               print '\n'
+#            print temp
+            if len(finalResult) == 0:
+                direction = (direction + 1) % 3
+#            print("i : %d, fact : %d, direction : %d\n") % (i, fact, direction)
+                big_box = [ sorted(i, key=itemgetter(direction)) for i  in temp ]
+                temp = []
+#            print big_box
+#            print '\n'
+                num_pes = num_pes/fact
+            else: 
+                break
+        big_box = finalResult
+#        print big_box
+        return big_box
 
     def assign_coordinates_cray(self, big_box, big_torus, type1 = 'zorder', dimVector=None):
         """ Assigns the elements their coordinates as per actual cray grid in the user specified order. -> In this function, the coordinates are ordered in the speicifed method by the user such as z-order, row order and grid-order. 
@@ -281,6 +320,27 @@ class Partition(object):
                 if big_box[i_big] != -1:
                     temp = i_big+(int(big_box[i_big][0]), int(big_box[i_big][1]))
                     buffer.append(temp)
+        elif type1 == "rcb_order":
+            num_pes = len(self.elements)
+            if strategic.is_prime(awful.isprime, num_pes):
+                print 'deal with prime number with normal bisection' # I'm apply the recursive graph bisection or recursive spectral bisection for the next step
+            else:
+                factors = fact.factorise(num_pes)
+                j=0
+                temp =[]
+                print ("factors[0] : %d, number of pes in the first partiton : %d\n") % (factors[0], num_pes/factors[0])
+                for i_big in np.ndindex(big_box.shape):
+                    if big_box[i_big] != -1:
+                        print i_big
+                        temp.append(i_big+(int(big_box[i_big][0]), int(big_box[i_big][1]))) #first splitting here. The numpy array is split into python lists so that further partition can be done so easily
+                        j=j+1
+                        if j >= (num_pes/factors[0]):
+#                            print temp
+                            for i in self.recursive_partitioning(temp, num_pes/factors[0], factors[1:len(factors)], 0):
+                                buffer.append(i)
+                            temp = []
+                            j=0
+        
         elif type1 == "grid_order": # this mapping is not complete
             for i_big in np.ndindex(big_box.shape):
               if big_box[i_big] != -1:
@@ -296,6 +356,7 @@ class Partition(object):
             elt.coord = elt.coord + (i,) # buffer[i] #
             self.box[temp] = elt
             i += 1
+        print buffer
         return buffer
 
 

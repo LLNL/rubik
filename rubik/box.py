@@ -41,6 +41,7 @@ querying the system for dimensions/shape of the allocated job partition.
 
 from partition import *
 from process import *
+from pyprimes import factors as fact
 
 import numpy as np
 import subprocess
