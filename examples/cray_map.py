@@ -9,16 +9,16 @@ app = box_cray([8,8])
 #app.tilt(0, 1, 2)
 #rv.color(app)
 #rv.viewbox(app)
-big_torus, big_box = autobox_cray(numpes="64")
+big_torus, big_box, dimVector = autobox_cray(numpes="64")
 
 torus = box_cray([4, 4, 4])
 type1 = 'rcb_order'
 
 torus.map(app)
-torus.tilt(0,1,2)
+#torus.tilt(0,1,2)
 f = open('mapfile_new', 'w')
 #gridVector = (2,2) #
-torus.write_map_cray(big_box, big_torus, type1, f, (0,0))# the last parameter is for grid mapping but it is not fully implemented so ignore it. 
+torus.write_map_cray(big_box, big_torus, type1, f, dimVector)# the last parameter is for grid mapping but it is not fully implemented so ignore it. 
 #torus.write_map
 #rv.viewbox(torus)
 

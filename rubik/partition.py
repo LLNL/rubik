@@ -268,11 +268,10 @@ class Partition(object):
         if close:
             stream.close()
 
-    def recursive_partitioning(self, big_box, num_pes, factors, direction): # recursive partiton by factors of the given numpes 
+    def recursive_partitioning(self, big_box, num_pes, factors, dirVec, dirIdx): # recursive partiton by factors of the given numpes 
         "sort big_box in 'direction'"
-
-        direction = (direction +1) % 3
-        big_box = sorted(big_box, key=itemgetter(direction))
+        dirIdx = (dirIdx +1) % 3
+        big_box = sorted(big_box, key=itemgetter(dirVec[dirIdx]))
         temp = []
         big_box = [big_box]
 #        print 'big_box'
@@ -292,9 +291,9 @@ class Partition(object):
 #               print '\n'
 #            print temp
             if len(finalResult) == 0:
-                direction = (direction + 1) % 3
+                dirIdx = (dirIdx + 1) % 3
 #            print("i : %d, fact : %d, direction : %d\n") % (i, fact, direction)
-                big_box = [ sorted(i, key=itemgetter(direction)) for i  in temp ]
+                big_box = [ sorted(i, key=itemgetter(dirVec[dirIdx])) for i  in temp ]
                 temp = []
 #            print big_box
 #            print '\n'
@@ -322,6 +321,11 @@ class Partition(object):
                     buffer.append(temp)
         elif type1 == "rcb_order":
             num_pes = len(self.elements)
+            directions = [0,1,2]
+            if dimVector != None:
+               dimVector = sorted(list(enumerate(dimVector)), key=itemgetter(1),reverse=True)
+               directions = list(map(int, zip(*dimVector)[0]))
+            print directions
             if strategic.is_prime(awful.isprime, num_pes):
                 print 'deal with prime number with normal bisection' # I'm apply the recursive graph bisection or recursive spectral bisection for the next step
             else:
@@ -329,14 +333,14 @@ class Partition(object):
                 j=0
                 temp =[]
                 print ("factors[0] : %d, number of pes in the first partiton : %d\n") % (factors[0], num_pes/factors[0])
-                for i_big in np.ndindex(big_box.shape):
+                for i_big in sorted(np.ndindex(big_box.shape), key=itemgetter(directions[0])):
                     if big_box[i_big] != -1:
                         print i_big
                         temp.append(i_big+(int(big_box[i_big][0]), int(big_box[i_big][1]))) #first splitting here. The numpy array is split into python lists so that further partition can be done so easily
                         j=j+1
                         if j >= (num_pes/factors[0]):
 #                            print temp
-                            for i in self.recursive_partitioning(temp, num_pes/factors[0], factors[1:len(factors)], 0):
+                            for i in self.recursive_partitioning(temp, num_pes/factors[0], factors[1:len(factors)], directions, 0):
                                 buffer.append(i)
                             temp = []
                             j=0
