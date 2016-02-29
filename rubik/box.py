@@ -222,7 +222,7 @@ def autobox_cray(**kwargs):
         subprocess.call(["aprun", "-n", numpes, "./topology", numpes])
 #        cuboidShape = '8x3x11@4.12.16'
         """This code is to obtain the shape of the assigned cuboid, this will be used for further partitoning"""
-        cuboidShape = subprocess.Popen("checkjob $PBS_JOBID | grep 'Placement' | awk '{print $NF;}'", stdout=subprocess.PIPE).stdout.read()         
+        cuboidShape = subprocess.Popen("checkjob $PBS_JOBID | grep 'Placement' | awk '{print $NF;}'", stdout=subprocess.PIPE, shell=True).stdout.read()         
         cuboidShape = cuboidShape.split('@')[0]
         cuboidShape = map(int, cuboidShape.split('x'))
 #        print "Aprun is called"
