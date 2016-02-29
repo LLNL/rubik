@@ -207,7 +207,11 @@ def box_cray(shape):
     return Partition.fromlist(shape, [Process(i) for i in xrange(size)])
 
 def create_executable():
-        if subprocess.call(["cc", "Topology.c", "-o", "topology"]) != 0:
+        pythonPath = os.environ["PYTHONPATH"]
+        pythonPath = pythonPath.split(':')
+        pythonPath = [i for i in pythonPath if 'rubik' in i][0]
+        print pythonPath
+        if subprocess.call(["cc", pythonPath+'/rubik/'+"Topology.c", "-o", "topology"]) != 0:
                 raise Exception("Unable to compile Topology executable!")
 
 def autobox_cray(**kwargs):
