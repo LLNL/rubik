@@ -333,7 +333,7 @@ class Partition(object):
                 j=0
                 temp =[]
                 print ("factors[0] : %d, number of pes in the first partiton : %d\n") % (factors[0], num_pes/factors[0])
-                for i_big in sorted(np.ndindex(big_box.shape), key=itemgetter(directions[0])):
+                for i_big in sorted(np.ndindex(big_box.shape), key=itemgetter(3)):#directions[0])):
                     if big_box[i_big] != -1:
                         print i_big
                         temp.append(i_big+(int(big_box[i_big][0]), int(big_box[i_big][1]))) #first splitting here. The numpy array is split into python lists so that further partition can be done so easily
