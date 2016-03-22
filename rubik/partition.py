@@ -270,7 +270,7 @@ class Partition(object):
 
     def recursive_partitioning(self, big_box, num_pes, factors, dirVec, dirIdx): # recursive partiton by factors of the given numpes 
         "sort big_box in 'direction'"
-        dirIdx = (dirIdx +1) % 3
+        dirIdx = (dirIdx +1) % len(self.box.shape)
         big_box = sorted(big_box, key=itemgetter(dirVec[dirIdx]))
         temp = []
         big_box = [big_box]
@@ -321,7 +321,7 @@ class Partition(object):
                     buffer.append(temp)
         elif type1 == "rcb_order":
             num_pes = len(self.elements)
-            directions = [0,1,2]
+            directions = [i for i in range(len(self.box.shape))]
             if dimVector != None:
                dimVector = sorted(list(enumerate(dimVector)), key=itemgetter(1),reverse=True)
                directions = list(map(int, zip(*dimVector)[0]))
@@ -333,9 +333,9 @@ class Partition(object):
                 j=0
                 temp =[]
                 print ("factors[0] : %d, number of pes in the first partiton : %d\n") % (factors[0], num_pes/factors[0])
-                for i_big in sorted(np.ndindex(big_box.shape), key=itemgetter(3)):#directions[0])):
+                for i_big in sorted(np.ndindex(big_box.shape), key=itemgetter(directions[0])):
                     if big_box[i_big] != -1:
-                        print i_big
+#                        print i_big
                         temp.append(i_big+(int(big_box[i_big][0]), int(big_box[i_big][1]))) #first splitting here. The numpy array is split into python lists so that further partition can be done so easily
                         j=j+1
                         if j >= (num_pes/factors[0]):
