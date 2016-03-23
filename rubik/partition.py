@@ -196,6 +196,7 @@ class Partition(object):
     
     def zorder_cray(self):
         return zorder.zenumerate(self.box.shape)
+
     # === Other Operations =============================================
     def depth(self):
         return 1 + max([child.depth() for child in self.children.flat] + [0])
@@ -268,7 +269,7 @@ class Partition(object):
         if close:
             stream.close()
 
-    def recursive_partitioning(self, big_box, num_pes, factors, dirVec, dirIdx): # recursive partiton by factors of the given numpes 
+    def recursive_partitioning(self, big_box, num_pes, factors, dirVec, dirIdx, minSize=1): # recursive partiton by factors of the given numpes 
         "sort big_box in 'direction'"
         dirIdx = (dirIdx +1) % len(self.box.shape)
         big_box = sorted(big_box, key=itemgetter(dirVec[dirIdx]))
@@ -282,7 +283,7 @@ class Partition(object):
 #        fact = factors[0]
             for partition in big_box:
                 for i in range(0, num_pes, num_pes/fact):
-                    if num_pes/fact == 1:
+                    if num_pes/fact <= minSize:
                         finalResult.append(partition[i:i+num_pes/fact][0])
                     else:
                         temp.append(partition[i:(i+num_pes/fact)]) # splitting
@@ -304,6 +305,35 @@ class Partition(object):
 #        print big_box
         return big_box
 
+    def decide_direction_vector(self, dimVector):
+       directions = None
+       if dimVector != None:
+          dimVector = sorted(list(enumerate(dimVector)), key=itemgetter(1),reverse=True)
+          directions = list(map(int, zip(*dimVector)[0]))
+       else:
+          directions = [i for i in range(len(self.box.shape))]
+       return directions
+
+    def reorder_box(self, logical_box, compact_scheme, dimVector):
+       if compact_scheme == 'row_order':
+          return sorted(logical_box)
+       elif compact_scheme == 'zorder':
+          zorder(self)
+          return [ i for i in self.elements ]
+       elif compact_scheme == 'rcb_order':
+          directions = self.decide_direction_vector(dimVector)
+          num_pes = len(self.elements)
+          if strategic.is_prime(awful.isprime, num_pes):
+             print 'deal with prime number with normal bisection' # I'll apply the recursive graph bisection or recursive spectral bisection for the next step
+             return logical_box
+          else:
+             factors = fact.factorise(num_pes)
+             return self.recursive_partitioning(logical_box, num_pes, factors, directions, 0)
+
+       else:
+          return logical_box
+
+    
     def assign_coordinates_cray(self, big_box, big_torus, type1 = 'zorder', dimVector=None):
         """ Assigns the elements their coordinates as per actual cray grid in the user specified order. -> In this function, the coordinates are ordered in the speicifed method by the user such as z-order, row order and grid-order. 
         """
@@ -321,13 +351,14 @@ class Partition(object):
                     buffer.append(temp)
         elif type1 == "rcb_order":
             num_pes = len(self.elements)
-            directions = [i for i in range(len(self.box.shape))]
-            if dimVector != None:
-               dimVector = sorted(list(enumerate(dimVector)), key=itemgetter(1),reverse=True)
-               directions = list(map(int, zip(*dimVector)[0]))
+            directions = self.decide_direction_vector(dimVector)
+#            directions = [i for i in range(len(self.box.shape))]
+#            if dimVector != None:
+#               dimVector = sorted(list(enumerate(dimVector)), key=itemgetter(1),reverse=True)
+#               directions = list(map(int, zip(*dimVector)[0]))
             print directions
             if strategic.is_prime(awful.isprime, num_pes):
-                print 'deal with prime number with normal bisection' # I'm apply the recursive graph bisection or recursive spectral bisection for the next step
+                print 'deal with prime number with normal bisection' # I'll apply the recursive graph bisection or recursive spectral bisection for the next step
             else:
                 factors = fact.factorise(num_pes)
                 j=0
@@ -364,7 +395,7 @@ class Partition(object):
         return buffer
 
 
-    def write_map_cray(self, big_box, big_torus, type1 = 'zorder', stream=sys.stdout, dimVector=None):
+    def write_map_cray(self, big_box, big_torus, type1 = 'row_order', stream=sys.stdout, dimVector=None):
         """ Writes a map file for cray machines to a specified stream.
         """
         close = False
@@ -400,14 +431,23 @@ class Partition(object):
         #the followings are for mapping the logical coordinates into the physical coordinates in the real torus network with holes such as BlueWaters. 
 
         for elt in elements: ##first collects logical orders in a temporary list. These coordinates are determined by the user specified partitioning and transformations. 
-            format = " ".join(["%s"] * len(elt.coord)) # + "\n"
+#            format = " ".join(["%s"] * len(elt.coord)) # + "\n"
             temp_coords.append(elt.coord)
         i=0
         finalResult = []
-        for coord in sorted(temp_coords):# sort the coordinates in a logical box because they are ordered by the user specified partitioning and transformations. 
+#        print 'Before sort'
+#        print temp_coords
+#        print sorted(temp_coords)
+        temp_coords = self.reorder_box(temp_coords, type1, dimVector)
+#        print 'After sort'
+#        print temp_coords
+        for coord in temp_coords:# sort the coordinates in a logical box because they are ordered by the user specified partitioning and transformations. 
             finalResult.append(coord + buffer[i]) ## each coordinates in the sorted logical box starting from (0, 0, 0) to (n, n, n) are mapped to each coordintates in the real torus network in the order specified by the user with the type1 variable. 
             i+=1
-
+        for i in finalResult:
+            format = " ".join(["%s"] * len(i))
+            a = format % i
+            print a
         for finalCoord in sorted(finalResult, key=itemgetter(len(self.box.shape))):
             format = " ".join(["%s"] * len(finalCoord))  + "\n"
             stream.write(format % finalCoord)
