@@ -3,6 +3,7 @@
 #include <rca_lib.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <string.h>
 #include <ctype.h>
 #include <mpi.h>
 #define HAS_RCA_MAX_DIMENSION 1
@@ -73,7 +74,11 @@ void main(int argc, char *argv[])
   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 
   if(!myRank) { // Only master node do the following mapping work.
-        fp = fopen("Topology.txt", "w");
+        char *fname=(char*)malloc(sizeof(char)*(strlen("_Topology.txt")+strlen(argv[1])));
+        strcpy(fname, argv[1]);
+//        strcat(fname, argv[1]);
+        strcat(fname, "_Topology.txt");
+        fp = fopen(fname,"w");//numpe_Topology.txt
         int nid,i,j,k,l,lx=0,ly=0,lz=0,xdim,ydim,zdim,maxnid;
         int numpes = atoi(argv[1]);
         coord *details;
@@ -128,6 +133,7 @@ void main(int argc, char *argv[])
 fprintf(fp, "%d \t %d \t %d \t %d \t %d \t %d \n", details[i].pid1, details[i].nid1, details[i].x, details[i].y, details[i].z, details[i].t);
         }
         fclose(fp);
+        free(fname);
 
         free(details);
         for(i=0; i<xdim; i++) {

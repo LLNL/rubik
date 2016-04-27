@@ -42,6 +42,7 @@ querying the system for dimensions/shape of the allocated job partition.
 from partition import *
 from process import *
 from pyprimes import factors as fact
+from sets import Set
 
 import numpy as np
 import subprocess
@@ -207,37 +208,84 @@ def box_cray(shape):
     return Partition.fromlist(shape, [Process(i) for i in xrange(size)])
 
 def create_executable():
-        pythonPath = os.environ["PYTHONPATH"]
-        pythonPath = pythonPath.split(':')
-        pythonPath = [i for i in pythonPath if 'rubik' in i][0]
-        print pythonPath
-        if subprocess.call(["cc", pythonPath+'/rubik/'+"Topology.c", "-o", "topology"]) != 0:
-                raise Exception("Unable to compile Topology executable!")
+    pythonPath = os.environ["PYTHONPATH"]
+    pythonPath = pythonPath.split(':')
+    pythonPath = [i for i in pythonPath if 'rubik' in i][0]
+    print pythonPath
+    if subprocess.call(["cc", pythonPath+'/rubik/'+"Topology.c", "-o", "topology"]) != 0:
+       raise Exception("Unable to compile Topology executable!")
 
 def autobox_cray(**kwargs):
-        """ This obtains the dimensions of the partition and available coordinates are discovered.
-        """
-        numpes = kwargs['numpes']
+    """ This obtains the dimensions of the partition and available coordinates are discovered.
+    """
+    numpes = kwargs['numpes']
+    if os.path.isfile("./topology") != True:
         create_executable()
-        subprocess.call(["aprun", "-n", numpes, "./topology", numpes])
-#        cuboidShape = '8x3x11@4.12.16'
+    subprocess.call(["aprun", "-n", numpes, "./topology", numpes])
+#        cuboidShape = '9x4x8@9.14.0'
 #        ""This code is to obtain the shape of the assigned cuboid, this will be used for further partitoning""
-        cuboidShape = subprocess.Popen("checkjob $PBS_JOBID | grep 'Placement' | awk '{print $NF;}'", stdout=subprocess.PIPE, shell=True).stdout.read()         
-        cuboidShape = cuboidShape.split('@')[0]
-        cuboidShape = map(int, cuboidShape.split('x')) 
+#        cuboidShape = subprocess.Popen("checkjob $PBS_JOBID | grep 'Placement' | awk '{print $NF;}'", stdout=subprocess.PIPE, shell=True).stdout.read()         
+#        cuboidShape = cuboidShape.split('@')[0]
+#        cuboidShape = map(int, cuboidShape.split('x')) 
 #       print "Aprun is called" 
-        ppn = (int)(kwargs['ppn'])
-        cuboidShape.append(ppn)
-        f = open("Topology.txt", "r")
-        dims = f.readline().rstrip('\n').split("x")
-        dims = [int(i) for i in dims]
-        check_coord = np.ones((int(dims[0]), int(dims[1]), int(dims[2]), int(dims[3])),dtype=object)
-        check_coord *= -1
-        for line in f:
-                p, n, x, y, z, t = line.split()
-                check_coord[int(x)][int(y)][int(z)][int(t)] = [p,n];
-#                check_coord[int(x)][int(y)][int(z)][int(t)][1] = n;
+#    ppn = (int)(kwargs['ppn'])
+#        cuboidShape.append(ppn*2)
+    f = open((str)(numpes)+'_'+"Topology.txt", "r")
+    dims = f.readline().rstrip('\n').split("x")
+    dims = [int(i) for i in dims]
 
-        f.close()
-        return box_cray(dims), check_coord, cuboidShape
+    setList =[] #a list of Sets for each dimension to figure out the shape of the allocation received from BlueWaters
+    for i in range(len(dims)):
+        setList.append(Set())
 
+    check_coord = np.ones((int(dims[0]), int(dims[1]), int(dims[2]), int(dims[3])),dtype=object)
+    check_coord *= -1
+    for line in f:
+        row =  [(int)(i) for i in line.split()] # p, n, x, y, z, t = line.split()
+        k=0
+        for j in map(int,row[2:len(row)]):
+            setList[k].add(j)
+            k+=1
+        check_coord[int(row[2])][int(row[3])][int(row[4])][int(row[5])] = [int(row[0]),int(row[1])];
+
+#           check_coord[int(x)][int(y)][int(z)][int(t)] = [p,n];
+#           check_coord[int(x)][int(y)][int(z)][int(t)][1] = n;
+    cuboidShape = []
+    for eachSet in setList:
+        cuboidShape.append(len(eachSet))
+
+    f.close()
+    return box_cray(dims), check_coord, cuboidShape
+
+def autobox_sim(**kwargs):
+    """ This obtains the dimensions of the partition and available coordinates are discovered.
+    """
+    filename = kwargs['filename'] 
+    f = open(filename,"r")
+    next(f)
+#    ppn = (int)(kwargs['ppn'])
+    dims = [24,24,24,64] #BlueWaters
+    check_coord = np.ones((int(dims[0]), int(dims[1]), int(dims[2]), int(dims[3])),dtype=object)
+    check_coord *= -1
+    p=0
+    setList =[]
+    for i in range(len(dims)):
+        setList.append(Set())
+    for line in f:
+        row =  [(int)(i) for i in line.split()]
+        k=0
+        for j in map(int,row):
+            setList[k].add(j)
+            k+=1
+        check_coord[int(row[0])][int(row[1])][int(row[2])][int(row[3])] = [p,p];
+        p+=1
+    cuboidShape=[]
+    for eachSet in setList:
+        cuboidShape.append(len(eachSet))
+#        cuboidShape.append(ppn*2) 
+    numpes = kwargs['numpes']
+    factors = fact.factorise(numpes)
+
+    f.close()
+    print cuboidShape
+    return box_cray(dims), check_coord, cuboidShape
