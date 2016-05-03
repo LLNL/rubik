@@ -215,6 +215,40 @@ def create_executable():
     if subprocess.call(["cc", pythonPath+'/rubik/'+"Topology.c", "-o", "topology"]) != 0:
        raise Exception("Unable to compile Topology executable!")
 
+def decide_torus_shape(dimVector, numpes):
+    """ This funciton is used to decide the shape of logical torus approximated to the shape of real allocation. 
+    The reason why this functionn is needed is that user needs some logical rubik box to map their application grid onto. 
+    Depending on how this logical torus is shaped, the benefit of rubik script can be varied significantly. 
+    """
+#    print dimVector
+    ppn = dimVector[len(dimVector)-1]
+    dimVector = dimVector[0:len(dimVector)-1]
+
+    dimVector = sorted(list(enumerate(dimVector)), key=itemgetter(1),reverse=True)
+#    print dimVector
+    factors = fact.factorise(numpes/ppn)
+    tempShape = [1]*len(dimVector)
+    finalShape = []
+    numLeft=len(tempShape)
+    idx=0
+    for factor in factors:
+#        print idx
+#        print factor
+#        print tempShape
+#        print finalShape
+#        print dimVector
+        tempShape[idx] = tempShape[idx] * factor
+        if tempShape[idx] >= dimVector[idx][1]:
+            finalShape.append((dimVector.pop(idx)[0],tempShape.pop(idx)))
+            numLeft-=1
+        else:
+            idx = idx + 1
+        if numLeft != 0:
+            idx = idx % numLeft
+    finalShape.append((dimVector[idx][0],tempShape[idx]))
+    finalShape.append((len(finalShape),ppn))
+    return list(zip(*sorted(finalShape, key=itemgetter(0)))[1])
+
 def autobox_cray(**kwargs):
     """ This obtains the dimensions of the partition and available coordinates are discovered.
     """
@@ -223,7 +257,7 @@ def autobox_cray(**kwargs):
     if (int)(topo) == 1:
       if os.path.isfile("./topology") != True:
           create_executable()
-      subprocess.call(["aprun", "-n", numpes, "./topology", numpes])
+    subprocess.call(["aprun", "-n", numpes, "./topology", numpes])
 #        cuboidShape = '9x4x8@9.14.0'
 #        ""This code is to obtain the shape of the assigned cuboid, this will be used for further partitoning""
 #        cuboidShape = subprocess.Popen("checkjob $PBS_JOBID | grep 'Placement' | awk '{print $NF;}'", stdout=subprocess.PIPE, shell=True).stdout.read()         
@@ -257,7 +291,7 @@ def autobox_cray(**kwargs):
         cuboidShape.append(len(eachSet))
 
     f.close()
-    return box_cray(dims), check_coord, cuboidShape
+    return box_cray(dims), check_coord, cuboidShape, decide_torus_shape(cuboidShape, numpes) 
 
 def autobox_sim(**kwargs):
     """ This obtains the dimensions of the partition and available coordinates are discovered.
@@ -290,4 +324,4 @@ def autobox_sim(**kwargs):
 
     f.close()
     print cuboidShape
-    return box_cray(dims), check_coord, cuboidShape
+    return box_cray(dims), check_coord, cuboidShape, decide_torus_shape(cuboidShape, numpes) 
