@@ -5,15 +5,14 @@ from rubik import *
 
 # application topology
 app = box_cray([8,8])
-
-#app.tilt(0, 1, 2)
+app.tile([1,8])
 #rv.color(app)
 #rv.viewbox(app)
 big_torus, big_box, dimVector = autobox_cray(numpes="64")
 
 torus = box_cray([4, 4, 4])
 type1 = 'rcb_order'
-
+torus.tile([2,2,2])
 torus.map(app)
 #torus.tilt(0,1,2)
 f = open('mapfile_new', 'w')
