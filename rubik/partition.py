@@ -336,14 +336,14 @@ class Partition(object):
           directions = [i for i in range(dimSelf)]
        return directions
 
-    def reorder_box(self, logical_box, compact_scheme, dimVector, maxDim=0):
+    def reorder_box(self, logical_box, compact_scheme, dirVec):  # dimVector, maxDim=0):
        if compact_scheme == 'row_order':
           return sorted(logical_box)
        elif compact_scheme == 'zorder':
           self.zorder()
           return [ i.coord for i in self.elements ]
        elif compact_scheme == 'rcb_order':
-          directions = self.decide_direction_vector(dimVector,maxDim)
+          directions = dirVec  # self.decide_direction_vector(dimVector,maxDim)
           print directions
           num_pes = len(self.elements)
           if strategic.is_prime(awful.isprime, num_pes):
@@ -352,12 +352,12 @@ class Partition(object):
           else:
              factors = fact.factorise(num_pes)
              print factors
-             return self.recursive_partitioning(sorted(logical_box), num_pes, factors, directions, 0)
+             return self.recursive_partitioning(sorted(logical_box), num_pes, factors, directions, -1)
        else:
           return logical_box
 
     
-    def assign_coordinates_cray(self, big_box, big_torus, type1 = 'zorder', dimVector=None, maxDim=0):
+    def assign_coordinates_cray(self, big_box, big_torus, type1, dirVec): #  dimVector=None, maxDim=0):
         """ Assigns the elements their coordinates as per actual cray grid in the user specified order. -> In this function, the coordinates are ordered in the speicifed method by the user such as z-order, row order and grid-order. 
         """
 
@@ -375,12 +375,7 @@ class Partition(object):
                     buffer.append(temp)
         elif type1 == "rcb_order":
             num_pes = len(self.elements)
-            directions = self.decide_direction_vector(dimVector,maxDim)
-#            directions = [i for i in range(len(self.box.shape))]
-#            if dimVector != None:
-#               dimVector = sorted(list(enumerate(dimVector)), key=itemgetter(1),reverse=True)
-#               directions = list(map(int, zip(*dimVector)[0]))
-            print directions
+            directions = dirVec 
             if strategic.is_prime(awful.isprime, num_pes):
                 print 'deal with prime number with normal bisection' # I'll apply the recursive graph bisection or recursive spectral bisection for the next step
             else:
@@ -404,19 +399,8 @@ class Partition(object):
             for i_big in np.ndindex(big_box.shape):
               if big_box[i_big] != -1:
                  temp = i_big+(int(big_box[i_big][0]), int(big_box[i_big][1]))
-#                 print i_big
             for j in buffer:
                 print "grid_order"
-
-#        i = 0
-
-#        for elt in elements: #np.ndindex(self.box.shape):
-#            temp = elt.coord
-#            elt.coord = elt.coord + (i,) # buffer[i] #
-#            self.box[temp] = elt
-#            i += 1
-#        print buffer
-
 
         return buffer
 
@@ -452,8 +436,8 @@ class Partition(object):
         else:
             my_elts = set(self.box.flat)
             elements = ifilter(my_elts.__contains__, self.root.elements)
-
-        buffer = self.assign_coordinates_cray(big_box, big_torus, type1, dimVector, maxDim) #buffer the physical coordinates in the real torus network in the specified order such as z-order, row-order and grid-order
+        dirVec = self.decide_direction_vector(dimVector,maxDim)
+        buffer = self.assign_coordinates_cray(big_box, big_torus, type1, dirVec) # dimVector, maxDim) #buffer the physical coordinates in the real torus network in the specified order such as z-order, row-order and grid-order
         temp_coords = []
 
         #the followings are for mapping the logical coordinates into the physical coordinates in the real torus network with holes such as BlueWaters. 
@@ -466,7 +450,7 @@ class Partition(object):
             i+=1
             temp_coords.append(elt.coord)
         finalResult = []
-        print 'Before sort'
+#        print 'Before sort'
 #        for line in temp_coords:
 #            format = " ".join(["%s"] * len(line))
 #            a = format % line
@@ -474,19 +458,12 @@ class Partition(object):
 #            print line
 #        print temp_coords
 #        print sorted(temp_coords)
-        temp_coords = self.reorder_box(temp_coords, type1, dimVector, maxDim)
-        print 'After sort'
-#        for line in temp_coords:
-#            print line
-
+        temp_coords = self.reorder_box(temp_coords, type1, dirVec)  #dimVector, maxDim)
+#        print 'After sort'
         i=0
         for coord in temp_coords:# sort the coordinates in a logical box because they are ordered by the user specified partitioning and transformations. 
             finalResult.append(coord + buffer[i]) ## each coordinates in the sorted logical box starting from (0, 0, 0) to (n, n, n) are mapped to each coordintates in the real torus network in the order specified by the user with the type1 variable. 
             i+=1
-#        for i in finalResult:
-#            format = " ".join(["%s"] * len(i))
-#            a = format % i
-#            print a
         for finalCoord in sorted(finalResult, key=itemgetter(len(self.box.shape))):
             format = " ".join(["%s"] * len(finalCoord))  + "\n"
             stream.write(format % finalCoord)
