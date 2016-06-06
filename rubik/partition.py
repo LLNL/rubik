@@ -375,7 +375,16 @@ class Partition(object):
                     buffer.append(temp)
         elif type1 == "rcb_order":
             num_pes = len(self.elements)
+<<<<<<< HEAD
             directions = dirVec 
+=======
+            directions = dirVec #self.decide_direction_vector(dimVector,maxDim)
+#            directions = [i for i in range(len(self.box.shape))]
+#            if dimVector != None:
+#               dimVector = sorted(list(enumerate(dimVector)), key=itemgetter(1),reverse=True)
+#               directions = list(map(int, zip(*dimVector)[0]))
+            print directions
+>>>>>>> fa98c38afd80e247c01c51c24e88af4999844542
             if strategic.is_prime(awful.isprime, num_pes):
                 print 'deal with prime number with normal bisection' # I'll apply the recursive graph bisection or recursive spectral bisection for the next step
             else:
@@ -459,7 +468,10 @@ class Partition(object):
 #        print temp_coords
 #        print sorted(temp_coords)
         temp_coords = self.reorder_box(temp_coords, type1, dirVec)  #dimVector, maxDim)
-#        print 'After sort'
+        print 'After sort'
+#        for line in temp_coords:
+#            print line
+
         i=0
         for coord in temp_coords:# sort the coordinates in a logical box because they are ordered by the user specified partitioning and transformations. 
             finalResult.append(coord + buffer[i]) ## each coordinates in the sorted logical box starting from (0, 0, 0) to (n, n, n) are mapped to each coordintates in the real torus network in the order specified by the user with the type1 variable. 
