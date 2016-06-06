@@ -464,11 +464,7 @@ class Partition(object):
 #        print temp_coords
 #        print sorted(temp_coords)
         temp_coords = self.reorder_box(temp_coords, type1, dirVec)  #dimVector, maxDim)
-<<<<<<< HEAD
-#        print 'After sort'
-=======
         print 'After sort'
->>>>>>> cb6a068aded3273d7083709f1569240225036177
 #        for line in temp_coords:
 #            print line
 
