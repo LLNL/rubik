@@ -220,7 +220,6 @@ def decide_torus_shape(dimVector, numpes):
     The reason why this functionn is needed is that user needs some logical rubik box to map their application grid onto. 
     Depending on how this logical torus is shaped, the benefit of rubik script can be varied significantly. 
     """
-#    print dimVector
     ppn = dimVector[len(dimVector)-1]
     dimVector = dimVector[0:len(dimVector)-1]
 
@@ -231,12 +230,13 @@ def decide_torus_shape(dimVector, numpes):
     finalShape = []
     numLeft=len(tempShape)
     idx=0
+#    print factors
     for factor in factors:
-#        print idx
-#        print factor
-#        print tempShape
-#        print finalShape
-#        print dimVector
+        print idx
+        print factor
+        print tempShape
+        print finalShape
+        print dimVector
         tempShape[idx] = tempShape[idx] * factor
         if tempShape[idx] >= dimVector[idx][1]:
             finalShape.append((dimVector.pop(idx)[0],tempShape.pop(idx)))
@@ -245,7 +245,11 @@ def decide_torus_shape(dimVector, numpes):
             idx = idx + 1
         if numLeft != 0:
             idx = idx % numLeft
-    finalShape.append((dimVector[idx][0],tempShape[idx]))
+#    print idx
+    print finalShape
+    if numLeft >0:
+        for idx in range(numLeft):
+            finalShape.append((dimVector[idx][0],tempShape[idx]))
     finalShape.append((len(finalShape),ppn))
     return list(zip(*sorted(finalShape, key=itemgetter(0)))[1])
 
@@ -291,7 +295,8 @@ def autobox_cray(**kwargs):
         cuboidShape.append(len(eachSet))
 
     f.close()
-    return box_cray(dims), check_coord, cuboidShape#, decide_torus_shape(cuboidShape, (int)(numpes)) 
+    print cuboidShape
+    return box_cray(dims), check_coord, cuboidShape, decide_torus_shape(cuboidShape, (int)(numpes)) 
 
 def autobox_sim(**kwargs):
     """ This obtains the dimensions of the partition and available coordinates are discovered.
@@ -324,4 +329,4 @@ def autobox_sim(**kwargs):
 
     f.close()
     print cuboidShape
-    return box_cray(dims), check_coord, cuboidShape #, decide_torus_shape(cuboidShape, (int)(numpes)) 
+    return box_cray(dims), check_coord,  cuboidShape, decide_torus_shape(cuboidShape, (int)(numpes)) 
