@@ -293,7 +293,7 @@ class Partition(object):
                 for i in range(0, num_pes, num_pes/fact):
 #                    print("i : %d, num_pes : %d, fact :%d\n") % (i, num_pes, fact)
                     if num_pes/fact <= minSize:
-                        finalResult.extend(sorted(partition[i:i+num_pes/fact])) #, key=itemgetter(1)))
+                        finalResult.extend(sorted(partition[i:i+num_pes/fact], key=itemgetter(0,2,1))) #, key=itemgetter(1)))
                     else:
                         temp.append(partition[i:(i+num_pes/fact)]) # splitting
 #                    print finalResult
@@ -318,50 +318,109 @@ class Partition(object):
 #        print big_box
         return big_box
 
-    def decide_direction_vector(self, initDimVector, maxDim=0):
+    def bisectionBW_calc_compare (self, initDimVector):
+        partition = list(initDimVector)
+        numpes = np.product(self.box.shape)
+        factors = fact.factorise(numpes)
+        bwVector = [1,1,1]
+        biBW= np.product(partition[0:3])
+        bwVector[0] = biBW * (2 if partition[0] >= 24 else 1)
+        bwVector[1] = biBW / 2 
+        bwVector[2] = biBW * (2 if partition[2] >= 24 else 1) 
+        directions = []
+        i=0
+        bwVector = sorted(enumerate(bwVector), key=itemgetter(1))
+        print bwVector
+        chosenAxis = None
+        chosenAxes = list(zip(*bwVector)[0])
+        previousAxis = None
+        while (np.product(partition[0:3]) > 1 or i >= len(factors)):
+            for bw in bwVector: 
+                currentAxis = bw[0]
+                if partition[currentAxis] <=1:
+                    chosenAxes.remove(currentAxis)
+                    bwVector.remove(bw)
+                    continue
+            print 'chosen Axes'
+            print chosenAxes
+            idx = 0
+            previousBW = bwVector[idx][1]
+            for axis in chosenAxes:
+                print axis
+                currentBW = bwVector[idx][1]
+                if currentBW == previousBW :
+                    if previousAxis != axis:
+                        chosenAxis = axis
+                        break
+                elif currentBW > previousBW:
+                    break
+                chosenAxis = axis
+                previousBW = currentBW
+                idx +=1
+            previousAxis = chosenAxis
+            partition[chosenAxis] /= factors[i]
+            for bwIdx in range(len(bwVector)):
+                bwVector[bwIdx]= (bwVector[bwIdx][0], bwVector[bwIdx][1]/ factors[i])
+            i+=1
+            directions.append(chosenAxis)
+            print 'bwVector'
+            print bwVector
+            print 'partition'
+            print partition
+            print 'directions'
+            print directions
+        return directions 
+
+    def decide_direction_vector(self, initDimVector, maxDim, biBW):
        directions = None
-       finalDiffDims = []
-       finalDimVector = []
-       dimSelf = len(self.box.shape)
-       maxDimInit = False
-       if maxDim == 0: #tries to set the order of 4th dimension to the last element in the direction vector
-           maxDim = dimSelf if dimSelf < 4 else 3
-           maxDimInit = True
-       initDimVector = initDimVector[0:maxDim]
-       initDimVector = list(enumerate(initDimVector))
-       dimVector=[]
-       diffDims = []
-       print dimVector
-#       i=0
-       for i in range(maxDim):
-           print i
+
+       if biBW == 0:
+           finalDiffDims = []
+           finalDimVector = []
+           dimSelf = len(self.box.shape)
+           maxDimInit = False
+           if maxDim == 0: #tries to set the order of 4th dimension to the last element in the direction vector
+               maxDim = dimSelf if dimSelf < 4 else 3
+               maxDimInit = True
+           initDimVector = initDimVector[0:maxDim]
+           initDimVector = list(enumerate(initDimVector))
+           dimVector=[]
+           diffDims = []
            print dimVector
-           print diffDims
-           if self.box.shape[i] != initDimVector[i][1]: # if this is true, non service nodes exist on this axis of the allocation. To distribute the holes as much as possible, we apply the recursive splitting in this axis later than in axes where there isn't non-compute node. 
-               diffDims.append(initDimVector[i])
-           else:
-               dimVector.append(initDimVector[i])
-       if len(dimVector) != 0:
-          dimVector = sorted(dimVector, key=itemgetter(1),reverse=True)
-#          dimVector = sorted(list(enumerate(dimVector)), key=itemgetter(1),reverse=True)
+    #       i=0
+           for i in range(maxDim):
+               print i
+               print dimVector
+               print diffDims
+               if self.box.shape[i] != initDimVector[i][1]: # if this is true, non service nodes exist on this axis of the allocation. To distribute the holes as much as possible, we apply the recursive splitting in this axis later than in axes where there isn't non-compute node. 
+                   diffDims.append(initDimVector[i])
+               else:
+                   dimVector.append(initDimVector[i])
+           if len(dimVector) != 0:
+              dimVector = sorted(dimVector, key=itemgetter(1),reverse=True)
+    #          dimVector = sorted(list(enumerate(dimVector)), key=itemgetter(1),reverse=True)
 
-          finalDimVector = list(map(int, zip(*dimVector)[0]))
-          if dimSelf >=4 and maxDimInit:
-              directions.append(dimSelf-1)              
+              finalDimVector = list(map(int, zip(*dimVector)[0]))
+              if dimSelf >=4 and maxDimInit:
+                  directions.append(dimSelf-1)              
 
-       if len(diffDims) != 0:
-          diffDims = sorted(diffDims, key=itemgetter(1),reverse=True)
-          finalDiffDims=list(map(int, zip(*diffDims)[0]))
-       print finalDimVector
-       print finalDiffDims
-       directions = finalDimVector + finalDiffDims # concatenate the axes having no hole and the axes having holes. 
-       #       else:
-#          directions = [i for i in range(dimSelf)]
+           if len(diffDims) != 0:
+              diffDims = sorted(diffDims, key=itemgetter(1),reverse=True)
+              finalDiffDims=list(map(int, zip(*diffDims)[0]))
+           print finalDimVector
+           print finalDiffDims
+           directions = finalDimVector + finalDiffDims # concatenate the axes having no hole and the axes having holes. 
+           #       else:
+    #          directions = [i for i in range(dimSelf)]
+       elif biBW == 1:  # direction vector is created with consideration on bisection bandwidth of each partitioning
+           print 'bisection'
+           print initDimVector
+           directions = self.bisectionBW_calc_compare(initDimVector)
        return directions
 
     def reorder_box(self, logical_box, compact_scheme, dirVec):  # dimVector, maxDim=0):
        if compact_scheme == 'row_order':
-          return sorted(logical_box) #, key=itemgetter(1))
+          return sorted(logical_box,key=itemgetter(1,0,2)) #, key=itemgetter(1))
        elif compact_scheme == 'zorder':
           self.zorder()
           return [ i.coord for i in self.elements ]
@@ -379,7 +438,7 @@ class Partition(object):
        else:
           return logical_box
     
-    def assign_coordinates_cray(self, big_box, big_torus, type1, dirVec): #  dimVector=None, maxDim=0):
+    def assign_coordinates_cray(self, big_box, big_torus, type1, dirVec=None): #  dimVector=None, maxDim=0):
         """ Assigns the elements their coordinates as per actual cray grid in the user specified order. -> In this function, the coordinates are ordered in the speicifed method by the user such as z-order, row order and grid-order. 
         """
         buffer = []
@@ -389,39 +448,23 @@ class Partition(object):
                 if big_box[i] != -1:
                     temp = i+(int(big_box[i][0]),int(big_box[i][1]))
                     buffer.append(temp)
+
         elif type1 == "row_order" or type1 == "rcb_order":
             for i_big in np.ndindex(big_box.shape):                
                 if big_box[i_big] != -1:
                     temp = i_big+(int(big_box[i_big][0]), int(big_box[i_big][1]))
                     buffer.append(temp)
-#            buffer = sorted(buffer, key=itemgetter(1)) 
+            buffer = sorted(buffer, key=itemgetter(1,0,2)) 
             if type1 == "rcb_order":
                 num_pes = len(self.elements)
-                directions = dirVec #self.decide_direction_vector(dimVector,maxDim)
-    #            directions = [i for i in range(len(self.box.shape))]
-    #            if dimVector != None:
-    #               dimVector = sorted(list(enumerate(dimVector)), key=itemgetter(1),reverse=True)
-    #               directions = list(map(int, zip(*dimVector)[0]))
-                print directions
-                if strategic.is_prime(awful.isprime, num_pes):
-                    print 'deal with prime number with normal bisection' # I'll apply the recursive graph bisection or recursive spectral bisection for the next step
-                else:
-                    factors = fact.factorise(num_pes)
-#                    j=0
-#                    temp =[]
-    #                print ("factors[0] : %d, number of pes in the first partiton : %d\n") % (factors[0], num_pes/factors[0])
-#                    for i_big in np.ndindex(big_box.shape): #sorted(np.ndindex(big_box.shape), key=itemgetter(directions[0])):
-#                        if big_box[i_big] != -1:
-    #                        print i_big
-#                            temp.append(i_big+(int(big_box[i_big][0]), int(big_box[i_big][1]))) #first splitting here. The numpy array is split into python lists so that further partition can be done so easily
-    #                        j=j+1
-    #                        if j >= (num_pes/factors[0]):
-    #                            print temp
-    #                            for i in self.recursive_partitioning(temp, num_pes/factors[0], factors[1:len(factors)], directions, 0):
-    #                                buffer.append(i)
-    #                            temp = []
-     #                           j=0
-                    buffer = self.recursive_partitioning(buffer, num_pes, factors, directions, -1)
+                if dirVec != None:
+                    directions = dirVec #self.decide_direction_vector(dimVector,maxDim)
+                    print directions
+                    if strategic.is_prime(awful.isprime, num_pes):
+                        print 'deal with prime number with normal bisection' # I'll apply the recursive graph bisection or recursive spectral bisection for the next step
+                    else:
+                        factors = fact.factorise(num_pes)
+                        buffer = self.recursive_partitioning(buffer, num_pes, factors, directions, -1)
         
         elif type1 == "grid_order": # this mapping is not complete
             for i_big in np.ndindex(big_box.shape):
@@ -432,8 +475,7 @@ class Partition(object):
 
         return buffer
 
-
-    def write_map_cray(self, big_box, big_torus, type1 = 'row_order', stream=sys.stdout, dimVector=None, maxDim=0):
+    def write_map_cray(self, big_box, big_torus, type1 = 'row_order', stream=sys.stdout, dimVector=None, maxDim=0, biBW=1):
         if maxDim != 0:
             maxDim=(int)(maxDim)
 #            print 'maxDim' + (str)(maxDim)
@@ -464,14 +506,16 @@ class Partition(object):
         else:
             my_elts = set(self.box.flat)
             elements = ifilter(my_elts.__contains__, self.root.elements)
-        dirVec = self.decide_direction_vector(dimVector,maxDim) # dimVector = shape of the allocation
-#        dirVec = [0,1,2]
+
+        dirVec = None
+        if type1 == 'rcb_order':
+            dirVec = self.decide_direction_vector(dimVector,maxDim, biBW) # dimVector = shape of the allocation
         buffer = self.assign_coordinates_cray(big_box, big_torus, type1, dirVec) # dimVector, maxDim) #buffer the physical coordinates in the real torus network in the specified order such as z-order, row-order and grid-order
         temp_coords = []
 
         #the followings are for mapping the logical coordinates into the physical coordinates in the real torus network with holes such as BlueWaters. 
 
-        self.assign_coordinates() #assign coordinates in a logical torus box
+        self.assign_coordinates() #assign coordinates in a logical torus box{
         i=0
         for elt in elements: ##first collects logical orders in a temporary list. These coordinates are determined by the user specified partitioning and transformations. 
 #            format = " ".join(["%s"] * len(elt.coord)) # + "\n"

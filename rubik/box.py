@@ -295,7 +295,7 @@ def autobox_cray(**kwargs):
         cuboidShape.append(len(eachSet))
 
     f.close()
-    print cuboidShape
+#    print cuboidShape
     return box_cray(dims), check_coord, cuboidShape, decide_torus_shape(cuboidShape, (int)(numpes)) 
 
 def autobox_sim(**kwargs):
