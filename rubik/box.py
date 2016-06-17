@@ -260,8 +260,11 @@ def autobox_cray(**kwargs):
     topo = kwargs['queryTopo']
     if (int)(topo) == 1:
       if os.path.isfile("./topology") != True:
-          create_executable()
+          create_executable() 
       subprocess.call(["aprun", "-n", numpes, "./topology", numpes])
+      while (os.stat((str)(numpes)+'_'+"Topology.txt").st_size == 0):
+          subprocess.call(["aprun", "-n", numpes, "./topology", numpes])
+
 #        cuboidShape = '9x4x8@9.14.0'
 #        ""This code is to obtain the shape of the assigned cuboid, this will be used for further partitoning""
 #        cuboidShape = subprocess.Popen("checkjob $PBS_JOBID | grep 'Placement' | awk '{print $NF;}'", stdout=subprocess.PIPE, shell=True).stdout.read()         
