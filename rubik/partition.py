@@ -269,7 +269,7 @@ class Partition(object):
 
         self.assign_coordinates()
         for elt in elements:
-            format = " ".join(["%s"] * len(elt.coord))+" %s"+ "\n"
+            format = " ".join(["%s"] * len(elt.coord))+"\n"
             stream.write(format % elt.coord)
 
         if close:
@@ -318,12 +318,12 @@ class Partition(object):
 #        print big_box
         return big_box
 
-    def bisectionBW_calc_compare (self, initDimVector):
+    def bisectionBW_calc_compare (self, maxDim, initDimVector):
         partition = list(initDimVector)
         numpes = np.product(self.box.shape)
         factors = fact.factorise(numpes)
         bwVector = [1,1,1]
-        biBW= np.product(partition[0:3])
+        biBW= np.product(partition[0:maxDim-1])
         bwVector[0] = biBW * (2 if partition[0] >= 24 else 1)
         bwVector[1] = biBW / 2 
         bwVector[2] = biBW * (2 if partition[2] >= 24 else 1) 
@@ -334,7 +334,7 @@ class Partition(object):
         chosenAxis = None
         chosenAxes = list(zip(*bwVector)[0])
         previousAxis = None
-        while (np.product(partition[0:3]) > 1 or i >= len(factors)):
+        while (np.product(partition[0:maxDim]) > 1 or i >= len(factors)):
             for bw in bwVector: 
                 currentAxis = bw[0]
                 if partition[currentAxis] <=1:
@@ -369,19 +369,26 @@ class Partition(object):
             print partition
             print 'directions'
             print directions
+        if i < len(factors):
+            k = i-2
+            while (np.product(factors[i:len(factors)]) > partition[len(partition)-1]):
+                    directions.append(directions[k])
+                    i+=1
+                    k-=1
+            directions.extend([maxDim-1]*(len(factors)-i))
         return directions 
 
     def decide_direction_vector(self, initDimVector, maxDim, biBW):
        directions = None
+       dimSelf = len(self.box.shape)
+       maxDimInit = False
+       if maxDim == 0: #tries to set the order of 4th dimension to the last element in the direction vector
+           maxDim = dimSelf if dimSelf < 4 else 3
+           maxDimInit = True
 
        if biBW == 0:
            finalDiffDims = []
            finalDimVector = []
-           dimSelf = len(self.box.shape)
-           maxDimInit = False
-           if maxDim == 0: #tries to set the order of 4th dimension to the last element in the direction vector
-               maxDim = dimSelf if dimSelf < 4 else 3
-               maxDimInit = True
            initDimVector = initDimVector[0:maxDim]
            initDimVector = list(enumerate(initDimVector))
            dimVector=[]
@@ -415,7 +422,7 @@ class Partition(object):
        elif biBW == 1:  # direction vector is created with consideration on bisection bandwidth of each partitioning
            print 'bisection'
            print initDimVector
-           directions = self.bisectionBW_calc_compare(initDimVector)
+           directions = self.bisectionBW_calc_compare(maxDim, initDimVector)
        return directions
 
     def reorder_box(self, logical_box, compact_scheme, dirVec):  # dimVector, maxDim=0):
